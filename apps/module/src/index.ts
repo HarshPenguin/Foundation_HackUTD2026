@@ -1270,11 +1270,11 @@ export const configureMessaging = spacetimedb.reducer(
     requireOwner(ctx);
     const address = a.address.trim();
     const phone = a.phone.replace(/[^0-9+]/g, '');
-    if (!address) throw new SenderError('Paste your Photon server address');
+    if (!address) throw new SenderError('Paste your Photon project ID');
     if (!/^\+?[0-9]{7,15}$/.test(phone)) throw new SenderError('Enter your phone number with country code, like +1 214 555 0142');
     const prev = ctx.db.messagingSecret.id.find(0);
     const token = a.token.trim() || prev?.token || '';
-    if (!token) throw new SenderError('Paste your Photon token');
+    if (!token) throw new SenderError('Paste your Photon project secret');
     // A random webhook secret, made with the reducer's deterministic RNG.
     const secret = prev?.webhookSecret || [...ctx.random.fill(new Uint8Array(18))].map(b => b.toString(16).padStart(2, '0')).join('');
     const secretRow = { id: 0, token, phone: phone.startsWith('+') ? phone : `+${phone}`, webhookSecret: secret };
@@ -1409,11 +1409,14 @@ export const photonWebhook = spacetimedb.httpHandler((ctx, req) => {
     if (!s || !secret || secret !== s.webhookSecret) return 'unauthorized';
     const events: any[] = Array.isArray(ev?.events) ? ev.events : [ev];
     for (const e of events) {
-      if (e?.type !== 'message.received') continue;
+      // Spectrum's native webhook sends { message: { sender, space, content, direction } };
+      // the lower-level iMessage events send { type: 'message.received', message: {...} }.
+      if (e?.type && e.type !== 'message.received' && !String(e.type).startsWith('message')) continue;
       const msg = e.message ?? {};
-      if (msg.isFromMe || e.isFromMe) continue;
-      const from = String(msg.sender?.address ?? e.actor?.address ?? e.from ?? '');
-      const text = String(msg.content?.text ?? msg.text ?? e.text ?? '');
+      if (msg.isFromMe || e.isFromMe || msg.direction === 'outbound' || msg.direction === 'out') continue;
+      if (msg.content?.type && msg.content.type !== 'text') continue;
+      const from = String(msg.sender?.address ?? msg.sender?.id ?? e.actor?.address ?? e.from ?? '');
+      const text = String(msg.content?.text ?? msg.content?.value ?? msg.text ?? e.text ?? '');
       if (!text.trim()) continue;
       // Only the owner's own phone can control the crew.
       if (digits(from).slice(-10) !== digits(s.phone).slice(-10)) continue;

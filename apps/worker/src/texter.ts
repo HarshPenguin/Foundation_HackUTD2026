@@ -1,43 +1,50 @@
-// Sends the owner's queued texts through Photon (iMessage, with SMS fallback).
+// Sends the owner's queued texts through Photon Spectrum (iMessage, with SMS fallback).
 // SpacetimeDB decides what to send (text_message rows); this only delivers them.
-import { createHttpClient } from '@photon-ai/advanced-imessage';
+// Credentials: the Spectrum project ID (public, in `messaging.address`) and the project
+// secret (private, read through the worker-only `worker_messaging` view).
+import { Spectrum } from '@spectrum-ts/core';
+import { imessage } from '@spectrum-ts/imessage';
 import type { Conn } from './stdb';
 
-type PhotonClient = ReturnType<typeof createHttpClient>;
+type App = Awaited<ReturnType<typeof Spectrum>>;
 
-let client: PhotonClient | undefined;
-let clientKey = '';
-const chatGuids = new Map<string, string>();
+let app: App | undefined;
+let appKey = '';
+let starting: Promise<App> | undefined;
+const spaces = new Map<string, { send(text: string): Promise<unknown> }>();
 const inFlight = new Set<string>();
 
-function photonFor(address: string, token: string, server: string): PhotonClient {
-  const key = `${address}|${server}|${token.slice(-6)}`;
-  if (!client || key !== clientKey) {
-    client = createHttpClient({ address, token, ...(server ? { server } : {}), timeout: 15_000, retry: { maxAttempts: 3, initialDelay: 300, maxDelay: 3_000 } });
-    clientKey = key;
-    chatGuids.clear();
-  }
-  return client;
+async function spectrumFor(projectId: string, projectSecret: string): Promise<App> {
+  const key = `${projectId}|${projectSecret.slice(-6)}`;
+  if (app && key === appKey) return app;
+  if (starting && key === appKey) return starting;
+  if (app) await Promise.resolve(app.stop?.()).catch(() => undefined);
+  app = undefined;
+  spaces.clear();
+  appKey = key;
+  starting = Spectrum({ projectId, projectSecret, providers: [imessage.config()], signal: AbortSignal.timeout(20_000) }).then(a => {
+    app = a;
+    starting = undefined;
+    return a;
+  });
+  starting.catch(() => {
+    starting = undefined;
+    appKey = '';
+  });
+  return starting;
 }
 
-async function chatFor(im: PhotonClient, phone: string): Promise<string> {
-  const cached = chatGuids.get(phone);
+async function spaceFor(a: App, phone: string) {
+  const cached = spaces.get(phone);
   if (cached) return cached;
-  try {
-    const created = await im.chats.create([phone]);
-    chatGuids.set(phone, created.chat.guid);
-    return created.chat.guid;
-  } catch {
-    // Fall back to a direct chat GUID; the server resolves iMessage vs SMS.
-    const guid = `any;-;${phone}`;
-    chatGuids.set(phone, guid);
-    return guid;
-  }
+  const space = await imessage(a).space.create(phone);
+  spaces.set(phone, space);
+  return space;
 }
 
 function safeError(e: unknown): string {
   return String((e as Error)?.message ?? e)
-    .replace(/(token|bearer)\s*[:=]?\s*\S+/gi, '$1 [hidden]')
+    .replace(/(secret|token|bearer)\s*[:=]?\s*\S+/gi, '$1 [hidden]')
     .slice(0, 240);
 }
 
@@ -52,17 +59,15 @@ export async function sendQueuedTexts(conn: Conn) {
   for (const t of queued) {
     inFlight.add(t.id.toString());
     try {
-      const im = photonFor(m.address, creds.token, m.server);
-      const chat = await chatFor(im, creds.phone);
-      await im.messages.sendText(chat, t.body, { clientMessageId: `foundation-${t.id}` });
+      const a = await spectrumFor(m.address, creds.token);
+      const space = await spaceFor(a, creds.phone);
+      await space.send(t.body);
       await conn.reducers.markTextSent({ id: t.id, ok: true, error: '' });
       console.log(`[texts] sent #${t.id} (${t.kind})`);
     } catch (e) {
       const msg = safeError(e);
-      // A repeated clientMessageId means the original send already went through.
-      const duplicate = /duplicate/i.test(msg);
-      await conn.reducers.markTextSent({ id: t.id, ok: duplicate, error: duplicate ? '' : msg }).catch(() => undefined);
-      console.warn(`[texts] #${t.id} ${duplicate ? 'already sent' : `failed: ${msg}`}`);
+      await conn.reducers.markTextSent({ id: t.id, ok: false, error: msg }).catch(() => undefined);
+      console.warn(`[texts] #${t.id} failed: ${msg}`);
     } finally {
       inFlight.delete(t.id.toString());
     }

@@ -98,8 +98,7 @@ export function SmsPreview() {
   const live = Boolean(m?.enabled);
   const [address, setAddress] = useState('');
   const [token, setToken] = useState('');
-  const [server, setServer] = useState('');
-  const [phone, setPhone] = useState(readPhone);
+    const [phone, setPhone] = useState(readPhone);
   const [passcode, setPasscode] = useState('');
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -118,7 +117,7 @@ export function SmsPreview() {
   const save = async () => {
     setBusy(true);
     const owner = passcode ? await call(r => r.claimOwner({ passcode })) : true;
-    const ok = owner && (await call(r => r.configureMessaging({ address: address.trim(), token: token.trim(), server: server.trim(), phone: phone.trim() }), 'Texts are on'));
+    const ok = owner && (await call(r => r.configureMessaging({ address: address.trim(), token: token.trim(), server: '', phone: phone.trim() }), 'Texts are on'));
     setBusy(false);
     if (ok) {
       writePhone(phone.trim());
@@ -168,9 +167,8 @@ export function SmsPreview() {
 
           {showForm && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field id="ph-address" label="Photon server address" value={address} onChange={setAddress} placeholder={m?.address || 'From your Photon dashboard'} />
-              <Field id="ph-token" label="Photon token" type="password" value={token} onChange={setToken} placeholder={m?.hasToken ? 'Saved. Leave blank to keep it' : 'From your Photon dashboard'} />
-              <Field id="ph-server" label="Instance ID (optional)" value={server} onChange={setServer} placeholder={m?.server || 'Only for a dedicated instance'} />
+              <Field id="ph-address" label="Photon project ID" value={address} onChange={setAddress} placeholder={m?.address || 'From app.photon.codes'} />
+              <Field id="ph-token" label="Project secret" type="password" value={token} onChange={setToken} placeholder={m?.hasToken ? 'Saved. Leave blank to keep it' : 'From app.photon.codes'} />
               <Field id="sms-phone" label="Your phone number" value={phone} onChange={setPhone} placeholder="+1 214 555 0142" inputMode="tel" />
               <Field id="ph-pass" label="Owner passcode" type="password" value={passcode} onChange={setPasscode} placeholder="If asked" />
               <div className="flex items-end gap-2">
@@ -183,14 +181,14 @@ export function SmsPreview() {
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-muted sm:col-span-2">The token and your number go to a private table only your crew can read. They never come back to this browser.</p>
+              <p className="text-xs text-muted sm:col-span-2">The secret and your number go to a private table only your crew can read. They never come back to this browser.</p>
             </div>
           )}
 
           {live && db.webhookSecret && (
             <div className="rounded-xl bg-navy-50 px-3 py-3 text-sm">
               <div className="mb-1 font-medium text-ink">Let replies reach your crew</div>
-              <p className="mb-2 text-xs text-muted">In Photon, add this as your webhook for incoming messages. Only texts from your number are accepted.</p>
+              <p className="mb-2 text-xs text-muted">In Photon (app.photon.codes), add this as your project&rsquo;s webhook for incoming messages. Only texts from your number are accepted.</p>
               <div className="flex items-center gap-2">
                 <code className="min-w-0 flex-1 truncate rounded bg-white px-2 py-1 text-[11px]">{webhookUrl(db.webhookSecret)}</code>
                 <Button
