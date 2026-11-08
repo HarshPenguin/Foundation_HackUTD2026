@@ -86,3 +86,19 @@ Foundation/
 ├─ packages/shared  cost estimator, prompts, types
 └─ docs/  DEVPOST.md, FOUNDATION_KICKOFF.md, architecture.md, demo-script.md
 ```
+
+## 7. Approved changes (frozen schema, v1)
+
+1. Private `auth_config` table stores `adminIdentity` (module publisher), `workerIdentity`, `ownerIdentity`. The worker registers with `registerWorker(pairingCode)`; the admin sets the code with `setWorkerPairingCode` (private table, never public). `commitSpend`, `claimTask`, `completeTask`, `markProviderStopped`, `writeReport`, `writeReview`, `createTask`, `finishRun`, `reserveBudget`, `logActivity` reject anyone but the worker (admin also allowed for ops).
+2. `provider.reservedMicros`; rule is `balance − reserved − est ≥ threshold`.
+3. Reserve the worst case: `inputTokens × priceIn + maxOutputTokens × priceOut`; `commitSpend` charges actual tokens and releases the full reservation.
+4. `completeTask` with `failed`/`rejected` releases any reservation; a `reservation_timer` row per reservation releases it after 10 minutes if still held.
+5. `resetDemo` — owner, worker, or admin only. Wipes and reseeds.
+6. Reserve with no provider/budget available sets task `blocked`; for `chat` tasks the worker answers from database state with no LLM call.
+7. `employee.runDay` (weekday 0–6 for weekly, day-of-month 1–28 for monthly/quarterly), `runHour` (0–23), `timezone` (IANA name, display), `utcOffsetMinutes` (used for math).
+8. `setCadence` deletes and re-creates that employee's `cadence_timer` rows.
+9. `employee.providerId` and `employee.model` removed; `fallback_chain` is the only source of truth. `provider.model` names the model each provider runs.
+10. `setMode('autonomous')` resolves every `waiting_user` task by switching (excludes the failed provider, re-queues) and resolves its notification.
+11. Worker Dockerfile installs `php-cli` (Tester runs `php -l` and PHP checks on MediClaim).
+
+Extra task columns: `reservedMicros`, `inputTokens`, `maxOutputTokens`, `excludedProviderIds u64[]`; status adds `blocked`.
