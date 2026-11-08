@@ -55,7 +55,8 @@ export async function think(db: Db, task: Task, employee: Employee, req: Complet
     if (pe.budgetExhausted || keyRejected) {
       const why = pe.budgetExhausted ? 'AI credits used up' : 'API key was rejected';
       try {
-        await db.r.markProviderStopped({ providerId: provider.id, reason: `${provider.name} ${why}` });
+        // The module prefixes the provider name, so the reason is just the why.
+        await db.r.markProviderStopped({ providerId: provider.id, reason: why });
       } catch (e) {
         console.warn('[llm] markProviderStopped failed:', (e as Error).message);
       }

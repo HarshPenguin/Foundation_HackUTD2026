@@ -9,3 +9,4 @@ target/
 foundation.bundle
 !apps/web/.env.production
 .workspace*/
+*.mp4
