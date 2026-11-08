@@ -37,17 +37,22 @@ import {
 import AddProviderReducer from "./add_provider_reducer";
 import ClaimOwnerReducer from "./claim_owner_reducer";
 import ClaimTaskReducer from "./claim_task_reducer";
+import ClaudeCodePreflightReducer from "./claude_code_preflight_reducer";
 import CommitSpendReducer from "./commit_spend_reducer";
 import CompleteTaskReducer from "./complete_task_reducer";
+import ConnectIntegrationReducer from "./connect_integration_reducer";
 import CreateTaskReducer from "./create_task_reducer";
+import DisconnectIntegrationReducer from "./disconnect_integration_reducer";
 import DismissNotificationReducer from "./dismiss_notification_reducer";
 import FinishRunReducer from "./finish_run_reducer";
 import FireAndReplaceReducer from "./fire_and_replace_reducer";
 import LockSpendingReducer from "./lock_spending_reducer";
 import LogActivityReducer from "./log_activity_reducer";
 import MarkProviderStoppedReducer from "./mark_provider_stopped_reducer";
+import RecordBlockedPromptReducer from "./record_blocked_prompt_reducer";
 import RegisterWorkerReducer from "./register_worker_reducer";
 import ReleaseOwnerReducer from "./release_owner_reducer";
+import ReportExternalUsageReducer from "./report_external_usage_reducer";
 import ReserveBudgetReducer from "./reserve_budget_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
 import ResolveSwitchOrUpgradeReducer from "./resolve_switch_or_upgrade_reducer";
@@ -75,7 +80,9 @@ import ActivityRow from "./activity_table";
 import BudgetRow from "./budget_table";
 import ChatMessageRow from "./chat_message_table";
 import EmployeeRow from "./employee_table";
+import ExternalSessionRow from "./external_session_table";
 import FallbackChainRow from "./fallback_chain_table";
+import IntegrationRow from "./integration_table";
 import NotificationRow from "./notification_table";
 import ProjectRow from "./project_table";
 import ProviderRow from "./provider_table";
@@ -137,6 +144,17 @@ const tablesSchema = __schema({
       { name: 'employee_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, EmployeeRow),
+  externalSession: __table({
+    name: 'external_session',
+    indexes: [
+      { accessor: 'sessionId', name: 'external_session_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
+    ],
+    constraints: [
+      { name: 'external_session_session_id_key', constraint: 'unique', columns: ['sessionId'] },
+    ],
+  }, ExternalSessionRow),
   fallbackChain: __table({
     name: 'fallback_chain',
     indexes: [
@@ -148,6 +166,17 @@ const tablesSchema = __schema({
       { name: 'fallback_chain_task_type_key', constraint: 'unique', columns: ['taskType'] },
     ],
   }, FallbackChainRow),
+  integration: __table({
+    name: 'integration',
+    indexes: [
+      { accessor: 'id', name: 'integration_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'integration_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, IntegrationRow),
   notification: __table({
     name: 'notification',
     indexes: [
@@ -257,17 +286,22 @@ const reducersSchema = __reducers(
   __reducerSchema("add_provider", AddProviderReducer),
   __reducerSchema("claim_owner", ClaimOwnerReducer),
   __reducerSchema("claim_task", ClaimTaskReducer),
+  __reducerSchema("claude_code_preflight", ClaudeCodePreflightReducer),
   __reducerSchema("commit_spend", CommitSpendReducer),
   __reducerSchema("complete_task", CompleteTaskReducer),
+  __reducerSchema("connect_integration", ConnectIntegrationReducer),
   __reducerSchema("create_task", CreateTaskReducer),
+  __reducerSchema("disconnect_integration", DisconnectIntegrationReducer),
   __reducerSchema("dismiss_notification", DismissNotificationReducer),
   __reducerSchema("finish_run", FinishRunReducer),
   __reducerSchema("fire_and_replace", FireAndReplaceReducer),
   __reducerSchema("lock_spending", LockSpendingReducer),
   __reducerSchema("log_activity", LogActivityReducer),
   __reducerSchema("mark_provider_stopped", MarkProviderStoppedReducer),
+  __reducerSchema("record_blocked_prompt", RecordBlockedPromptReducer),
   __reducerSchema("register_worker", RegisterWorkerReducer),
   __reducerSchema("release_owner", ReleaseOwnerReducer),
+  __reducerSchema("report_external_usage", ReportExternalUsageReducer),
   __reducerSchema("reserve_budget", ReserveBudgetReducer),
   __reducerSchema("reset_demo", ResetDemoReducer),
   __reducerSchema("resolve_switch_or_upgrade", ResolveSwitchOrUpgradeReducer),

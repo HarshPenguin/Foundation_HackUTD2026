@@ -1,0 +1,25 @@
+{
+  "name": "foundation-claude-code",
+  "version": "0.1.0",
+  "description": "Connects Claude Code to Foundation: spend tracking, the $0 hard stop, and an MCP server for your AI maintenance crew.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "foundation-claude-code": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.6.3"
+  }
+}

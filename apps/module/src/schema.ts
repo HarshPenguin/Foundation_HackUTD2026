@@ -252,6 +252,49 @@ export const reservationTimer = table(
   }
 );
 
+// ---- Integrations (Claude Code first). Private: which identity belongs to which integration.
+export const integrationAuth = table(
+  { name: 'integration_auth' },
+  {
+    identity: t.identity().primaryKey(),
+    integrationId: t.u64(),
+  }
+);
+
+export const integration = table(
+  { name: 'integration', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    kind: t.string(), // claude_code
+    name: t.string(), // e.g. "Harsh's laptop"
+    status: t.string(), // connected | disconnected
+    connectedAt: t.timestamp(),
+    lastSeenAt: t.timestamp(),
+    sessionsThisWeek: t.u32(),
+    spentThisWeekMicros: t.u64(),
+    blockedPrompts: t.u32(),
+  }
+);
+
+// One row per Claude Code session; token counts are cumulative, so repeated reports never double-charge.
+export const externalSession = table(
+  { name: 'external_session', public: true },
+  {
+    sessionId: t.string().primaryKey(),
+    integrationId: t.u64(),
+    model: t.string(),
+    project: t.string(),
+    inputTokens: t.u64(),
+    outputTokens: t.u64(),
+    cacheWriteTokens: t.u64(),
+    cacheReadTokens: t.u64(),
+    costMicros: t.u64(),
+    turns: t.u32(),
+    startedAt: t.timestamp(),
+    updatedAt: t.timestamp(),
+  }
+);
+
 const spacetimedb = schema({
   authConfig,
   settings,
@@ -271,5 +314,8 @@ const spacetimedb = schema({
   cadenceTimer,
   weekRolloverTimer,
   reservationTimer,
+  integrationAuth,
+  integration,
+  externalSession,
 });
 export default spacetimedb;

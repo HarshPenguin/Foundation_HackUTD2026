@@ -6,7 +6,9 @@ import type {
   Budget,
   ChatMessage,
   Employee,
+  ExternalSession,
   FallbackChain,
+  Integration,
   Notification,
   Project,
   Provider,
@@ -71,6 +73,8 @@ export interface Db {
   chat: readonly ChatMessage[];
   reports: readonly Report[];
   reviews: readonly Review[];
+  integrations: readonly Integration[];
+  externalSessions: readonly ExternalSession[];
 }
 
 const DbContext = createContext<Db | null>(null);
@@ -92,7 +96,9 @@ export function DbProvider({ children }: { children: ReactNode }) {
   const [chat, r12] = useTable(tables.chatMessage);
   const [reports, r13] = useTable(tables.report);
   const [reviews, r14] = useTable(tables.review);
-  const ready = r1 && r2 && r3 && r4 && r5 && r6 && r7 && r8 && r9 && r10 && r11 && r12 && r13 && r14;
+  const [integrations, r15] = useTable(tables.integration);
+  const [externalSessions, r16] = useTable(tables.externalSession);
+  const ready = r1 && r2 && r3 && r4 && r5 && r6 && r7 && r8 && r9 && r10 && r11 && r12 && r13 && r14 && r15 && r16;
 
   const value = useMemo<Db>(
     () => ({
@@ -111,8 +117,13 @@ export function DbProvider({ children }: { children: ReactNode }) {
       chat: [...chat].sort(byId),
       reports: [...reports].sort(byId),
       reviews: [...reviews].sort(byId),
+      integrations: [...integrations].sort(byId),
+      externalSessions: [...externalSessions].sort((a, b) => {
+        const x = a.updatedAt.microsSinceUnixEpoch, y = b.updatedAt.microsSinceUnixEpoch;
+        return x < y ? 1 : x > y ? -1 : 0; // newest first
+      }),
     }),
-    [ready, settings, budget, project, employees, providers, chains, spendEvents, runs, tasks, activity, notifications, chat, reports, reviews]
+    [ready, settings, budget, project, employees, providers, chains, spendEvents, runs, tasks, activity, notifications, chat, reports, reviews, integrations, externalSessions]
   );
   return <DbContext.Provider value={value}>{children}</DbContext.Provider>;
 }

@@ -27,6 +27,9 @@ export function wipe(ctx: Ctx) {
   for (const r of [...d.chatMessage.iter()]) d.chatMessage.id.delete(r.id);
   for (const r of [...d.report.iter()]) d.report.id.delete(r.id);
   for (const r of [...d.review.iter()]) d.review.id.delete(r.id);
+  // Integrations stay connected across a reset; only their usage history is cleared.
+  for (const r of [...d.externalSession.iter()]) d.externalSession.sessionId.delete(r.sessionId);
+  for (const i of [...d.integration.iter()]) d.integration.id.update({ ...i, sessionsThisWeek: 0, spentThisWeekMicros: 0n, blockedPrompts: 0 });
 }
 
 export function seed(ctx: Ctx) {
@@ -80,6 +83,14 @@ export function seed(ctx: Ctx) {
     balanceMicros: 1_100_000n, reservedMicros: 0n, thresholdMicros: 0n,
     priceInPerMTok: 60_000n, priceOutPerMTok: 240_000n,
     status: 'healthy', statusReason: '', usesThisWeek: 9, lastUsedAt: ago(6n * DAY),
+  });
+
+  // MOCK: Claude Code wallet = the weekly allowance you give Claude Code. Real: Anthropic Admin API cost report.
+  d.provider.insert({
+    id: 0n, name: 'Claude Code', model: 'claude-opus-5-5', isSimulated: false,
+    balanceMicros: 15n * USD, reservedMicros: 0n, thresholdMicros: 0n,
+    priceInPerMTok: 4_000_000n, priceOutPerMTok: 20_000_000n,
+    status: 'healthy', statusReason: '', usesThisWeek: 0, lastUsedAt: undefined,
   });
 
   const chains: Array<[string, bigint[]]> = [

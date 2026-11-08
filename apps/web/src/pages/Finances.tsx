@@ -42,6 +42,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { EmployeeChip, Markdown, PageHeader, ProviderStatus } from '@/components/shared';
 import { BudgetCalculator } from '@/components/BudgetCalculator';
 import { FallbackChains } from '@/components/FallbackChains';
+import { CLAUDE_CODE_PROVIDER, ClaudeCodeFinanceCard } from '@/components/ClaudeCode';
 import type { Provider } from '@/module_bindings/types';
 import { cn } from '@/lib/utils';
 
@@ -200,11 +201,21 @@ function ProviderCard({ p }: { p: Provider }) {
       <CardHeader>
         <div className="min-w-0">
           <CardTitle className="truncate">{p.name}</CardTitle>
-          <div className="mt-0.5 font-mono text-xs text-muted">{p.model}</div>
+          {p.name === CLAUDE_CODE_PROVIDER && !p.isSimulated ? (
+            <div className="mt-0.5 text-xs text-muted">Your Claude Code sessions</div>
+          ) : (
+            <div className="mt-0.5 font-mono text-xs text-muted">{p.model}</div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1">
           <ProviderStatus provider={p} />
-          {p.isSimulated ? <Badge tone="outline">Simulated</Badge> : <Badge tone="navy">Real API</Badge>}
+          {p.isSimulated ? (
+            <Badge tone="outline">Simulated</Badge>
+          ) : p.name === CLAUDE_CODE_PROVIDER ? (
+            <Badge tone="navy">Claude Code</Badge>
+          ) : (
+            <Badge tone="navy">Real API</Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col">
@@ -582,6 +593,9 @@ export default function FinancesPage() {
           <div className="grid gap-4 lg:grid-cols-3">
             <BudgetMeterCard />
             <UsageCard />
+          </div>
+          <div className="mt-4">
+            <ClaudeCodeFinanceCard />
           </div>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             <SpendFeed />

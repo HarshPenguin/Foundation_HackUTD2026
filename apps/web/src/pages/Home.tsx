@@ -8,6 +8,7 @@ import { ago, tsDate, usd, whenLabel } from '@/lib/format';
 import { Card, Badge, Meter } from '@/components/ui/primitives';
 import { EmployeeChip, Markdown, RoleAvatar } from '@/components/shared';
 import { cn } from '@/lib/utils';
+import { useClaudeCode } from '@/components/ClaudeCode';
 
 const SUGGESTIONS = ['Is my app safe?', 'Why did my bill go up?', 'Upgrade my login page'];
 
@@ -195,6 +196,7 @@ function GlanceCard({ to, icon, title, children, cta }: { to: string; icon: Reac
 export default function HomePage() {
   const db = useDb();
   const status = useStatusLine();
+  const cc = useClaudeCode();
   const b = db.budget;
   const spent = Number(b?.spentMicros ?? 0n);
   const reserved = Number(b?.reservedMicros ?? 0n);
@@ -252,6 +254,11 @@ export default function HomePage() {
                 </Badge>
               )}
             </div>
+            {cc.isConnected && (
+              <div className="mt-2 text-xs text-muted">
+                Claude Code: <span className="font-medium tabular-nums text-ink">{usd(cc.spentMicros)}</span> this week
+              </div>
+            )}
           </GlanceCard>
 
           <GlanceCard to="/developers" icon={<Code />} title="My Developers" cta="Open My Developers">

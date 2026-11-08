@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { GitPullRequest as Github, Cloud, Database, Boxes, Terminal, ShieldCheck, RotateCcw, Check, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { GitPullRequest as Github, Cloud, Database, Boxes, ShieldCheck, RotateCcw, Check, Sparkles } from 'lucide-react';
 import { useDb } from '@/lib/stdb';
 import { useCall, useToast } from '@/lib/actions';
 import { activeEmployees, ROLE_ORDER } from '@/lib/domain';
@@ -11,6 +12,7 @@ import { PageHeader, RoleAvatar } from '@/components/shared';
 import { BudgetCalculator } from '@/components/BudgetCalculator';
 import { SpendingLockCard, WeeklyBudgetCard } from './Finances';
 import { DeliveryPrefs } from './Communications';
+import { ClaudeCodeIntegrationCard } from '@/components/ClaudeCode';
 import type { Employee } from '@/module_bindings/types';
 
 const SECTIONS = [
@@ -219,17 +221,17 @@ function Cadences() {
 const INTEGRATIONS = [
   { k: 'github', name: 'GitHub', d: 'Open real branches and pull requests', icon: Github },
   { k: 'base44', name: 'Base44', d: 'Maintain apps you built on Base44', icon: Boxes },
-  { k: 'claude', name: 'Claude Code', d: 'Hand large refactors to Claude Code', icon: Terminal },
   { k: 'aws', name: 'AWS Budgets', d: 'Mirror your cloud budget alerts', icon: Cloud },
   { k: 'supabase', name: 'Supabase', d: 'Sign-in and your app database', icon: Database },
 ];
 
 function Integrations() {
-  // MOCK: Connect buttons only flip local state. Real: OAuth per integration (GitHub App, Supabase, AWS IAM role).
+  // MOCK: every card except Claude Code only flips local state. Real: OAuth per integration (GitHub App, Supabase, AWS IAM role).
   const toast = useToast();
   const [connected, setConnected] = useState<Record<string, boolean>>({});
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ClaudeCodeIntegrationCard className="sm:col-span-2 lg:col-span-3" />
       {INTEGRATIONS.map(i => (
         <Card key={i.k} className="flex items-center gap-3 p-4">
           <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-navy-50 text-navy-700">
@@ -320,6 +322,10 @@ function ResetDemo() {
 }
 
 export default function SettingsPage() {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [hash]);
   return (
     <div>
       <PageHeader title="Settings" description="Account, defaults, schedules and integrations." />
@@ -353,7 +359,7 @@ export default function SettingsPage() {
               <DeliveryPrefs />
             </Card>
           </Section>
-          <Section id="integrations" title="Integrations" badge={<MockTag>Demo</MockTag>}>
+          <Section id="integrations" title="Integrations" description="Claude Code is live. The others are demo cards for now." badge={<MockTag>Demo except Claude Code</MockTag>}>
             <Integrations />
           </Section>
           <Section id="demo" title="Demo data">

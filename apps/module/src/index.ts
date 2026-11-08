@@ -265,6 +265,7 @@ export const onWeekRollover = spacetimedb.reducer(
       autonomousHalted: false,
     });
     for (const p of [...ctx.db.provider.iter()]) ctx.db.provider.id.update({ ...p, usesThisWeek: 0 });
+    for (const i of [...ctx.db.integration.iter()]) ctx.db.integration.id.update({ ...i, sessionsThisWeek: 0, spentThisWeekMicros: 0n });
     log(ctx, 0n, 0n, 'budget', 'New week: budget reset, spending lock back on');
   }
 );
@@ -777,3 +778,170 @@ export const dismissNotification = spacetimedb.reducer({ notificationId: t.u64()
   }
   ctx.db.notification.id.update({ ...n, resolved: true });
 });
+
+// ------------------------------------------------------------- integrations: Claude Code
+
+// Claude list prices, micro-dollars per 1M tokens: [input, output, cache write (1.25x input), cache read].
+// Source: Claude API reference (models table, cached 2026-10-06). Unknown models price as Opus 5.5.
+const CLAUDE_PRICES: Array<[prefix: string, p: [bigint, bigint, bigint, bigint]]> = [
+  ['claude-fable-5-1', [10_000_000n, 50_000_000n, 12_500_000n, 250_000n]],
+  ['claude-mythos-5-1', [10_000_000n, 50_000_000n, 12_500_000n, 250_000n]],
+  ['claude-fable-5', [10_000_000n, 50_000_000n, 12_500_000n, 1_000_000n]],
+  ['claude-opus-5-5', [4_000_000n, 20_000_000n, 5_000_000n, 200_000n]],
+  ['claude-opus-5', [5_000_000n, 25_000_000n, 6_250_000n, 500_000n]],
+  ['claude-opus-4', [5_000_000n, 25_000_000n, 6_250_000n, 500_000n]],
+  ['claude-sonnet-5-5', [2_000_000n, 10_000_000n, 2_500_000n, 200_000n]],
+  ['claude-sonnet-5', [2_000_000n, 10_000_000n, 2_500_000n, 200_000n]],
+  ['claude-sonnet-4', [3_000_000n, 15_000_000n, 3_750_000n, 300_000n]],
+  ['claude-haiku-5-5', [100_000n, 500_000n, 125_000n, 10_000n]],
+  ['claude-haiku-4', [1_000_000n, 5_000_000n, 1_250_000n, 100_000n]],
+];
+const CLAUDE_CODE = 'Claude Code';
+const PREFLIGHT_MIN_MICROS = 50_000n; // a prompt must leave at least $0.05 of room
+
+function claudePrice(model: string) {
+  const m = model.toLowerCase();
+  for (const [prefix, p] of CLAUDE_PRICES) if (m.startsWith(prefix)) return p;
+  return CLAUDE_PRICES[3][1];
+}
+function claudeCost(model: string, inTok: bigint, outTok: bigint, cwTok: bigint, crTok: bigint) {
+  const [pi, po, pw, pr] = claudePrice(model);
+  return (inTok * pi + outTok * po + cwTok * pw + crTok * pr + 999_999n) / 1_000_000n;
+}
+function claudeCodeProvider(ctx: Ctx) {
+  const existing = [...ctx.db.provider.iter()].find(p => p.name === CLAUDE_CODE);
+  if (existing) return existing;
+  // MOCK: the wallet balance is a budget you set for Claude Code. Real: Anthropic Admin API cost report.
+  return ctx.db.provider.insert({
+    id: 0n, name: CLAUDE_CODE, model: 'claude-opus-5-5', isSimulated: false,
+    balanceMicros: 15_000_000n, reservedMicros: 0n, thresholdMicros: 0n,
+    priceInPerMTok: 4_000_000n, priceOutPerMTok: 20_000_000n,
+    status: 'healthy', statusReason: '', usesThisWeek: 0, lastUsedAt: undefined,
+  });
+}
+function requireIntegration(ctx: Ctx) {
+  const a = ctx.db.integrationAuth.identity.find(ctx.sender);
+  const i = a ? ctx.db.integration.id.find(a.integrationId) : undefined;
+  if (!i) throw new SenderError('This Claude Code is not connected to Foundation. Run the connect command first.');
+  return i;
+}
+/** Same rule as reserveBudget, for a prompt of estimated cost `est` on the Claude Code wallet. */
+function claudeCodeGate(ctx: Ctx, est: bigint): string {
+  const b = getBudget(ctx);
+  const p = claudeCodeProvider(ctx);
+  if (p.status === 'stopped' && p.statusReason.startsWith('external:')) return `Claude Code is stopped: ${p.statusReason.slice(9)}`;
+  if (p.balanceMicros < p.reservedMicros + est || p.balanceMicros - p.reservedMicros - est < p.thresholdMicros)
+    return `the Claude Code wallet would go below its ${usd(p.thresholdMicros)} limit (${usd(p.balanceMicros)} left)`;
+  if (b.spendLocked && b.spentMicros + b.reservedMicros + est > b.limitMicros)
+    return `the weekly budget is used up (${usd(b.spentMicros)} of ${usd(b.limitMicros)})`;
+  return '';
+}
+
+/** Claude Code connects with the owner passcode. Re-running is safe. */
+export const connectIntegration = spacetimedb.reducer(
+  { passcode: t.string(), kind: t.string(), name: t.string() },
+  (ctx, { passcode, kind, name }) => {
+    const a = auth(ctx);
+    if (a.ownerPasscode.length === 0 || passcode !== a.ownerPasscode) throw new SenderError('Wrong owner passcode');
+    if (kind !== 'claude_code') throw new SenderError('Only claude_code is supported');
+    const label = name.trim().slice(0, 60) || 'Claude Code';
+    const link = ctx.db.integrationAuth.identity.find(ctx.sender);
+    const prev = link ? ctx.db.integration.id.find(link.integrationId) : undefined;
+    if (prev) {
+      ctx.db.integration.id.update({ ...prev, name: label, status: 'connected', lastSeenAt: ctx.timestamp });
+    } else {
+      const i = ctx.db.integration.insert({
+        id: 0n, kind, name: label, status: 'connected', connectedAt: ctx.timestamp, lastSeenAt: ctx.timestamp,
+        sessionsThisWeek: 0, spentThisWeekMicros: 0n, blockedPrompts: 0,
+      });
+      if (link) ctx.db.integrationAuth.identity.update({ identity: ctx.sender, integrationId: i.id });
+      else ctx.db.integrationAuth.insert({ identity: ctx.sender, integrationId: i.id });
+    }
+    claudeCodeProvider(ctx);
+    log(ctx, 0n, activeByRole(ctx, 'purser')?.id ?? 0n, 'info', `Claude Code connected (${label}). The Purser now tracks and caps its spending`);
+  }
+);
+
+export const disconnectIntegration = spacetimedb.reducer({ integrationId: t.u64() }, (ctx, { integrationId }) => {
+  const i = ctx.db.integration.id.find(integrationId);
+  if (!i) throw new SenderError('integration missing');
+  ctx.db.integration.id.update({ ...i, status: 'disconnected' });
+  for (const a of [...ctx.db.integrationAuth.iter()]) if (a.integrationId === integrationId) ctx.db.integrationAuth.identity.delete(a.identity);
+  log(ctx, 0n, 0n, 'info', `${i.name} disconnected from Foundation`);
+});
+
+/** Called before every Claude Code prompt. Throws (blocking the prompt) when the budget says stop. */
+export const claudeCodePreflight = spacetimedb.reducer({ estMicros: t.u64() }, (ctx, { estMicros }) => {
+  const i = requireIntegration(ctx);
+  if (i.status !== 'connected') throw new SenderError('Claude Code was disconnected from Foundation');
+  const est = estMicros > PREFLIGHT_MIN_MICROS ? estMicros : PREFLIGHT_MIN_MICROS;
+  const why = claudeCodeGate(ctx, est);
+  if (why) throw new SenderError(`Foundation paused Claude Code: ${why}. Raise the budget or unlock spending in My Finances.`);
+  ctx.db.integration.id.update({ ...i, lastSeenAt: ctx.timestamp });
+});
+
+/** Records that a prompt was blocked (preflight rolled back, so this is a separate call). */
+export const recordBlockedPrompt = spacetimedb.reducer({ reason: t.string() }, (ctx, { reason }) => {
+  const i = requireIntegration(ctx);
+  ctx.db.integration.id.update({ ...i, blockedPrompts: i.blockedPrompts + 1, lastSeenAt: ctx.timestamp });
+  log(ctx, 0n, activeByRole(ctx, 'purser')?.id ?? 0n, 'budget', `Blocked a Claude Code prompt: ${reason.slice(0, 200)}`);
+});
+
+/** Claude Code reports cumulative token totals per session; only the increase is charged. */
+export const reportExternalUsage = spacetimedb.reducer(
+  {
+    sessionId: t.string(),
+    model: t.string(),
+    project: t.string(),
+    inputTokens: t.u64(),
+    outputTokens: t.u64(),
+    cacheWriteTokens: t.u64(),
+    cacheReadTokens: t.u64(),
+    turns: t.u32(),
+  },
+  (ctx, a) => {
+    const i = requireIntegration(ctx);
+    if (a.sessionId.length === 0 || a.sessionId.length > 100) throw new SenderError('bad session id');
+    const cost = claudeCost(a.model, a.inputTokens, a.outputTokens, a.cacheWriteTokens, a.cacheReadTokens);
+    const prev = ctx.db.externalSession.sessionId.find(a.sessionId);
+    if (prev && prev.integrationId !== i.id) throw new SenderError('session belongs to another integration');
+    const delta = prev && cost > prev.costMicros ? cost - prev.costMicros : prev ? 0n : cost;
+    const row = {
+      sessionId: a.sessionId, integrationId: i.id, model: a.model.slice(0, 60), project: a.project.slice(0, 80),
+      inputTokens: a.inputTokens, outputTokens: a.outputTokens, cacheWriteTokens: a.cacheWriteTokens,
+      cacheReadTokens: a.cacheReadTokens, costMicros: prev && prev.costMicros > cost ? prev.costMicros : cost,
+      turns: a.turns, startedAt: prev?.startedAt ?? ctx.timestamp, updatedAt: ctx.timestamp,
+    };
+    if (prev) ctx.db.externalSession.sessionId.update(row);
+    else ctx.db.externalSession.insert(row);
+
+    ctx.db.integration.id.update({
+      ...i,
+      lastSeenAt: ctx.timestamp,
+      sessionsThisWeek: i.sessionsThisWeek + (prev ? 0 : 1),
+      spentThisWeekMicros: i.spentThisWeekMicros + delta,
+    });
+    const purser = activeByRole(ctx, 'purser')?.id ?? 0n;
+    if (!prev) log(ctx, 0n, purser, 'info', `Claude Code session started in ${row.project || 'a project'} (${row.model})`);
+    if (delta === 0n) return;
+
+    const p = claudeCodeProvider(ctx);
+    ctx.db.provider.id.update({
+      ...p,
+      balanceMicros: p.balanceMicros > delta ? p.balanceMicros - delta : 0n,
+      usesThisWeek: p.usesThisWeek + 1,
+      lastUsedAt: ctx.timestamp,
+    });
+    refreshProviderStatus(ctx, p.id);
+    const b = getBudget(ctx);
+    ctx.db.budget.id.update({ ...b, spentMicros: b.spentMicros + delta });
+    ctx.db.spendEvent.insert({ id: 0n, taskId: 0n, providerId: p.id, estMicros: 0n, actualMicros: delta, kind: 'commit', at: ctx.timestamp });
+    log(ctx, 0n, purser, 'budget', `Claude Code spent ${usd(delta)} in ${row.project || 'a session'} (session total ${usd(row.costMicros)})`);
+
+    const after = getBudget(ctx);
+    if (after.spendLocked && after.spentMicros + after.reservedMicros >= after.limitMicros && !after.autonomousHalted) {
+      ctx.db.budget.id.update({ ...after, autonomousHalted: true });
+      notify(ctx, 'budget_halt', 'Weekly budget reached', `Claude Code usage brought this week to ${usd(after.spentMicros)} of ${usd(after.limitMicros)}. New Claude Code prompts and autonomous work are paused until you raise the budget or unlock spending.`);
+    }
+  }
+);

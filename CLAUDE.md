@@ -8,6 +8,7 @@ Full brief: docs/FOUNDATION_KICKOFF.md
 ## Layout
 apps/module (SpacetimeDB TS module) · apps/web (React/Vite/Tailwind/shadcn) · apps/worker (Node agents)
 legacy-demo/ (fake "MediClaim" PHP app, planted bugs — do NOT fix outside agent runs) · packages/shared
+integrations/claude-code (standalone npm pkg: Claude Code hooks + MCP server, talks to SpacetimeDB over HTTP)
 
 ## Rules
 - Budget/threshold/lock rules live ONLY in module reducers. Never trust the worker or web for them.

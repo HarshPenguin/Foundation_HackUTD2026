@@ -78,11 +78,46 @@ export const Employee = __t.object("Employee", {
 });
 export type Employee = __Infer<typeof Employee>;
 
+export const ExternalSession = __t.object("ExternalSession", {
+  sessionId: __t.string(),
+  integrationId: __t.u64(),
+  model: __t.string(),
+  project: __t.string(),
+  inputTokens: __t.u64(),
+  outputTokens: __t.u64(),
+  cacheWriteTokens: __t.u64(),
+  cacheReadTokens: __t.u64(),
+  costMicros: __t.u64(),
+  turns: __t.u32(),
+  startedAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type ExternalSession = __Infer<typeof ExternalSession>;
+
 export const FallbackChain = __t.object("FallbackChain", {
   taskType: __t.string(),
   providerIds: __t.array(__t.u64()),
 });
 export type FallbackChain = __Infer<typeof FallbackChain>;
+
+export const Integration = __t.object("Integration", {
+  id: __t.u64(),
+  kind: __t.string(),
+  name: __t.string(),
+  status: __t.string(),
+  connectedAt: __t.timestamp(),
+  lastSeenAt: __t.timestamp(),
+  sessionsThisWeek: __t.u32(),
+  spentThisWeekMicros: __t.u64(),
+  blockedPrompts: __t.u32(),
+});
+export type Integration = __Infer<typeof Integration>;
+
+export const IntegrationAuth = __t.object("IntegrationAuth", {
+  identity: __t.identity(),
+  integrationId: __t.u64(),
+});
+export type IntegrationAuth = __Infer<typeof IntegrationAuth>;
 
 export const Notification = __t.object("Notification", {
   id: __t.u64(),
