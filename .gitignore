@@ -6,3 +6,5 @@ dist/
 *.log
 target/
 .DS_Store
+foundation.bundle
+!apps/web/.env.production

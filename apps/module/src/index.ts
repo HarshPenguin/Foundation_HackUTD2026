@@ -759,3 +759,13 @@ export const fireAndReplace = spacetimedb.reducer({ employeeId: t.u64(), reason:
   log(ctx, 0n, m?.id ?? 0n, 'fire', `${e.displayName} let go: ${reason}`);
   log(ctx, 0n, fresh.id, 'hire', `${fresh.displayName} hired with a fresh start and a revised brief`);
 });
+
+export const dismissNotification = spacetimedb.reducer({ notificationId: t.u64() }, (ctx, { notificationId }) => {
+  const n = ctx.db.notification.id.find(notificationId);
+  if (!n) throw new SenderError('notification missing');
+  if (n.kind === 'switch_or_upgrade' && n.taskId != null) {
+    const tk = ctx.db.task.id.find(n.taskId);
+    if (tk && tk.status === 'waiting_user') throw new SenderError('Choose Switch or Upgrade first');
+  }
+  ctx.db.notification.id.update({ ...n, resolved: true });
+});

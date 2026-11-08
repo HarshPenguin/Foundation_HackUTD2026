@@ -1,0 +1,25 @@
+{
+  "name": "@foundation/worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "reset": "tsx src/scripts/reset.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "selftest": "tsx src/scripts/selftest.ts"
+  },
+  "dependencies": {
+    "@foundation/shared": "workspace:*",
+    "dotenv": "^18.0.9",
+    "openai": "^7.53.0",
+    "spacetimedb": "2.14.1",
+    "undici": "^7.30.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "~5.6.3"
+  }
+}

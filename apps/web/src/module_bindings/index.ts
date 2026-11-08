@@ -40,6 +40,7 @@ import ClaimTaskReducer from "./claim_task_reducer";
 import CommitSpendReducer from "./commit_spend_reducer";
 import CompleteTaskReducer from "./complete_task_reducer";
 import CreateTaskReducer from "./create_task_reducer";
+import DismissNotificationReducer from "./dismiss_notification_reducer";
 import FinishRunReducer from "./finish_run_reducer";
 import FireAndReplaceReducer from "./fire_and_replace_reducer";
 import LockSpendingReducer from "./lock_spending_reducer";
@@ -258,6 +259,7 @@ const reducersSchema = __reducers(
   __reducerSchema("commit_spend", CommitSpendReducer),
   __reducerSchema("complete_task", CompleteTaskReducer),
   __reducerSchema("create_task", CreateTaskReducer),
+  __reducerSchema("dismiss_notification", DismissNotificationReducer),
   __reducerSchema("finish_run", FinishRunReducer),
   __reducerSchema("fire_and_replace", FireAndReplaceReducer),
   __reducerSchema("lock_spending", LockSpendingReducer),

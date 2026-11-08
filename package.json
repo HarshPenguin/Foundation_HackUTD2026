@@ -6,5 +6,8 @@
     "dev": "pnpm --filter @foundation/web dev",
     "typecheck": "pnpm -r --if-present typecheck",
     "build": "pnpm -r --if-present build"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.3"
   }
 }
