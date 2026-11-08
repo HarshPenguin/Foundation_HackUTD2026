@@ -86,7 +86,7 @@ const BENEFITS = [
   "Claude Code can ask your crew questions, read the Auditor's findings and hand work to your crew.",
 ];
 
-const MCP_TOOLS = ['foundation_status', 'foundation_app_audit', 'foundation_ask_translator', 'foundation_request_work', 'foundation_recent_changes'];
+const MCP_TOOLS = ['foundation_status', 'foundation_app_audit', 'foundation_ask_chatbot', 'foundation_request_work', 'foundation_recent_changes'];
 
 export function ClaudeCodeSetupDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   return (

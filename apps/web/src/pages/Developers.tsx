@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { EmployeeChip, EmployeeStatus, Markdown, PageHeader, RoleAvatar } from '@/components/shared';
 import { CrewEvents, LivePanel } from '@/components/LivePanel';
 import { DiffDialog, EmployeeDrawer } from '@/components/EmployeeDrawer';
+import { RepoCard } from '@/components/RepoCard';
 import type { Employee, Task } from '@/module_bindings/types';
 import { cn } from '@/lib/utils';
 
@@ -88,7 +89,7 @@ function EmployeeCard({ e, onOpen, featured }: { e: Employee; onOpen: () => void
             {e.generation > 1 && <span className="text-[11px] text-muted">Gen {e.generation}</span>}
           </div>
           <div className="truncate text-xs text-muted" title={ROLE_BLURB[e.role]}>
-            {e.displayName.toLowerCase().startsWith(e.role) ? ROLE_BLURB[e.role] ?? sentence(e.role) : sentence(e.role)}
+            {e.displayName.toLowerCase().startsWith(e.role) || e.role === 'translator' ? ROLE_BLURB[e.role] ?? sentence(e.role) : sentence(e.role)}
           </div>
         </div>
         {working ? <Badge tone="warn">Working</Badge> : <EmployeeStatus status={e.status} />}
@@ -276,6 +277,7 @@ export default function DevelopersPage() {
           </>
         }
       />
+      <RepoCard compact />
       <AuditCard />
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <OrgChart onOpen={open} />

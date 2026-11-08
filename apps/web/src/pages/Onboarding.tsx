@@ -65,7 +65,7 @@ const CHAIN_TASKS: { taskType: string; who: string; what: string }[] = [
   { taskType: 'code', who: 'Developers', what: 'Write the fixes' },
   { taskType: 'review', who: 'Tester and Reviewer', what: 'Check every change' },
   { taskType: 'research', who: 'Researcher', what: 'Tracks your stack and what is out of date' },
-  { taskType: 'chat', who: 'Translator (talks to you)', what: 'Answers your questions in plain English' },
+  { taskType: 'chat', who: 'Chatbot (talks to you)', what: 'Answers your questions in plain English' },
   { taskType: 'marketing', who: 'Marketer', what: 'Drafts marketing strategies' },
   { taskType: 'general', who: 'Manager, Auditor, reports', what: 'Plans the week and writes your updates' },
 ];
@@ -1232,7 +1232,7 @@ function Success({
   const steps = [
     startFirstRun
       ? { t: 'The first run starts now', d: 'The Manager reads your app, the Auditor explains what is risky, and the Developers start on the top fixes.' }
-      : { t: 'Start a run whenever you like', d: 'Ask the Translator on Home, or press Run now on My Developers.' },
+      : { t: 'Start a run whenever you like', d: 'Ask the Chatbot on Home, or press Run now on My Developers.' },
     { t: `Every ${WEEKDAY_NAMES[crewDay]} at ${hourLabel(crewHour)}`, d: 'Your crew does its weekly maintenance run on its own.' },
     {
       t: `Spending stays under ${Number.isFinite(budget) ? usd(toMicros(budget), 0) : 'your budget'} a week`,

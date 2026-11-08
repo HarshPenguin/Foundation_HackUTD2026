@@ -13,10 +13,12 @@ import { BudgetCalculator } from '@/components/BudgetCalculator';
 import { SpendingLockCard, WeeklyBudgetCard } from './Finances';
 import { DeliveryPrefs } from './Communications';
 import { ClaudeCodeIntegrationCard } from '@/components/ClaudeCode';
+import { RepoCard } from '@/components/RepoCard';
 import type { Employee } from '@/module_bindings/types';
 
 const SECTIONS = [
   ['account', 'Account'],
+  ['code', 'Your code'],
   ['setup', 'Setup'],
   ['defaults', 'Defaults'],
   ['cadences', 'Cadences'],
@@ -369,6 +371,9 @@ export default function SettingsPage() {
         <div className="flex min-w-0 flex-col gap-10">
           <Section id="account" title="Account" badge={<MockTag>Demo sign-in</MockTag>}>
             <Account />
+          </Section>
+          <Section id="code" title="Your code" description="Connect the repo your crew maintains. The Auditor clones it and reads every file.">
+            <RepoCard />
           </Section>
           <Section id="setup" title="Setup" description="Your app, AI keys and crew schedule in one guided flow.">
             <RunOnboarding />

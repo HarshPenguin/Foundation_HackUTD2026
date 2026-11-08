@@ -9,9 +9,12 @@
 
 **1. The problem (15 s): Home.**
 "Every vibe-coded app becomes a legacy app the day it ships, and the people who built it can't maintain it. Foundation is an AI maintenance team that does it for them, and it never spends a dollar they didn't approve."
-Type **"Is my app safe?"** to the Translator. It answers in plain English.
+Type **"Is my app safe?"** to the Chatbot. It answers in plain English.
 
-**2. Understand (15 s): My Developers.**
+**2a. Connect your code (20 s): My Developers.**
+In the "Connect your code" card, click "Try it with DVWA", enter the owner passcode, and click **Connect and audit**. The live panel shows the Auditor cloning it and reading 242 files, and real risks appear with their `file:line`. "How DVWA works" shows up with a health score.
+
+**2b. Understand (15 s): My Developers.**
 Show the Auditor's "How MediClaim works": an SQL injection in claim search, and claim totals that drift by cents ("the kind of error behind Medicare's $28.8B in improper payments").
 
 **3. Repair (30 s): Run now.**

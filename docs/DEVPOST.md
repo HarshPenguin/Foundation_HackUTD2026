@@ -37,9 +37,9 @@ Foundation gives a non-technical owner a **virtual dev team** for an existing or
 
 | Employee | Job |
 |---|---|
-| **Translator** | The only employee you talk to. Turns plain English into work for the Manager and answers in plain English. Can't be fired. |
+| **Chatbot** | The only employee you talk to. Turns plain English into work for the Manager and answers in plain English. Can't be fired. |
 | **Manager** | Plans each cycle, assigns tasks, acts on performance reviews. |
-| **Auditor** | Maps the legacy codebase: how it works in plain English, its stack, risks and dead code. |
+| **Auditor** | Clones your repo and maps it: how it works in plain English, its stack, and every risky line (`file:line`). |
 | **Researcher → Updater** | Gathers deprecations and CVEs for your stack; the Updater turns them into update plans. |
 | **Developers** | Patch bugs and upgrade code, always on a separate git branch. |
 | **Tester** | Runs real checks (`php -l` plus behavioral PHP checks) and approves or rejects each change. Developers never approve their own work. |
@@ -48,11 +48,21 @@ Foundation gives a non-technical owner a **virtual dev team** for an existing or
 | **Marketer · Communicator** | Turn what shipped into a marketing plan, and send you the weekly update. |
 
 ### Five pages
-- **Home:** a ChatGPT-style chat with the Translator, plus at-a-glance cards.
+- **Home:** a ChatGPT-style chat with the Chatbot, plus at-a-glance cards.
 - **My Finances:** every API wallet, thresholds, the spending lock, drag-to-reorder fallback chains, a budget calculator, insights, and Claude Code spending.
 - **My Developers:** Autonomous/Manual mode, the org chart, a live panel streaming the crew's work, code diffs, and fire and replace.
 - **My Communications:** weekly updates, performance reviews, marketing strategies, audits and research.
 - **Settings:** cadences, budget defaults, integrations, owner passcode.
+
+### Connect your code
+Paste a public GitHub, GitLab or Bitbucket link. Base44 and Lovable apps work too, via their "Export to GitHub" button. Then:
+1. **The Auditor clones it** onto the crew's machine on Maritime and reads every file. No AI key is needed for this part: a built-in scanner finds the stack, outdated libraries and risky patterns. Those include SQL injection, command injection, XSS, `eval`, hardcoded passwords, weak password hashing and removed `mysql_*` calls, each with its exact `file:line`.
+2. **It writes "How your app works"** with a health score. With an AI key, a model adds a plain-English summary.
+3. **Run now:** the Manager plans fixes from those real findings.
+   - **With an AI key:** Developers patch on git branches in the crew's clone. The Tester lints the file and re-runs the scanner to confirm the risk is gone.
+   - **Without one:** Developers write up the exact fix instead of pretending.
+
+In the demo I connected **DVWA**, a well-known legacy PHP app. Foundation read 242 files, found 30 risks across 7 kinds, and planned its first fixes.
 
 ### Onboarding: bring any model
 A short onboarding asks about your app (stack, repo, what worries you), which AI providers you have, which model should do which job, and your budget and schedule. The crew's fallback chains are built from your answers. Foundation supports:
@@ -82,7 +92,7 @@ If nothing passes, autonomous work pauses for the week instead of spending more.
 If you already use Claude Code, keep it. Foundation's Claude Code integration adds:
 - **Spend tracking:** a `Stop` hook reports each session's tokens. Foundation prices them at current Claude list prices (including cache reads and writes) and charges your weekly budget. Reports are cumulative, so nothing is double-charged.
 - **The same $0 hard stop:** a `UserPromptSubmit` hook asks a SpacetimeDB reducer before every prompt. When the budget says stop, Claude Code blocks the prompt and says why.
-- **An MCP server** so Claude Code can work with the crew: `foundation_status`, `foundation_app_audit`, `foundation_recent_changes`, `foundation_ask_translator`, `foundation_request_work`.
+- **An MCP server** so Claude Code can work with the crew: `foundation_status`, `foundation_app_audit`, `foundation_recent_changes`, `foundation_ask_chatbot`, `foundation_request_work`.
 
 ### Demo
 I built a deliberately legacy **Medicare-style claims app, "MediClaim"** (PHP 5, jQuery 1.4, SQL inside page code). It has an SQL injection hole, a claim-total **rounding bug** (the small kind of error that adds up to improper payments), a hardcoded database password, outdated jQuery, dead code and no tests. The crew audits it, patches it on real git branches, tests the patches with real PHP checks, and reports back. Mid-run, a provider runs dry and the Purser switches models live on screen.
@@ -124,7 +134,7 @@ I built a deliberately legacy **Medicare-style claims app, "MediClaim"** (PHP 5,
 
 ## What's next
 
-- Real GitHub pull requests with one-click rollback, instead of branches in the crew's own copy.
+- Private repos and real pull requests (GitHub App), instead of branches in the crew's own clone.
 - Reading true balances from provider billing APIs (Anthropic Admin API, AWS Budgets) instead of allowances you set.
 - Real authentication (Supabase) and per-user encryption for stored keys.
 - One-click Base44 and Lovable connections, and COBOL support.
@@ -137,7 +147,7 @@ I built a deliberately legacy **Medicare-style claims app, "MediClaim"** (PHP 5,
 |---|---|
 | SpacetimeDB module: all budget, threshold, lock and switch rules in reducers; schedules; wake procedure; worker-only key view | Wallet balances are **allowances you set**, not read from each provider's billing |
 | Live dashboard (Vercel) on Maincloud subscriptions | Providers without a key run as **simulated** wallets with canned output |
-| Crew worker hosted on Maritime; real git branches and PHP checks on MediClaim | Email: the weekly update is stored and shown in a mock inbox, not sent |
+| Crew worker hosted on Maritime; connect a public repo, clone it, scan every file (real findings); real git branches and checks | Email: the weekly update is stored and shown in a mock inbox, not sent |
 | Real model adapters: OpenAI-compatible (Maritime, Hugging Face, Gemini, OpenAI, custom) and Claude (Anthropic SDK) | Login is a shared owner passcode (stand-in for Supabase Auth) |
 | Onboarding that configures providers, chains, budget and schedule | GitHub, Base44, AWS Budgets and Supabase "Connect" buttons |
 | Claude Code hooks (spend tracking, hard stop) and MCP server | "Upgrade" adds $20 of mock credit |

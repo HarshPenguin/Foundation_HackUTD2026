@@ -21,7 +21,7 @@ HackUTD 2026: 8090 Solutions (legacy modernization) and SpacetimeDB tracks.
   - `reserveBudget` enforces `balance − reserved − worstCase ≥ threshold` and the weekly limit, then switches models or asks you (Switch or upgrade).
   - Keys sit in a private table; only the registered worker can read them, through the `worker_secret` view.
   - When work is queued and the crew is asleep, the `wakeCrew` procedure calls Maritime's webhook.
-- **The worker** (`apps/worker`) runs the employees: Translator, Manager, Auditor, Researcher, Updater, Developers, Tester, Purser, Reviewer, Marketer and Communicator. It patches `legacy-demo/` (MediClaim) on git branches and tests each change with `php -l` and behavioral checks.
+- **The worker** (`apps/worker`) runs the employees: Chatbot, Manager, Auditor, Researcher, Updater, Developers, Tester, Purser, Reviewer, Marketer and Communicator. It patches `legacy-demo/` (MediClaim) on git branches and tests each change with `php -l` and behavioral checks.
 - **Claude Code integration** (`integrations/claude-code`): spend tracking, the same $0 hard stop before each prompt, and an MCP server for the crew.
 
 ## Repo layout

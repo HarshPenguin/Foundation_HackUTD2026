@@ -43,8 +43,10 @@ import CompleteOnboardingReducer from "./complete_onboarding_reducer";
 import CompleteTaskReducer from "./complete_task_reducer";
 import ConfigureProviderReducer from "./configure_provider_reducer";
 import ConnectIntegrationReducer from "./connect_integration_reducer";
+import ConnectRepoReducer from "./connect_repo_reducer";
 import CreateTaskReducer from "./create_task_reducer";
 import DisconnectIntegrationReducer from "./disconnect_integration_reducer";
+import DisconnectRepoReducer from "./disconnect_repo_reducer";
 import DismissNotificationReducer from "./dismiss_notification_reducer";
 import FinishRunReducer from "./finish_run_reducer";
 import FireAndReplaceReducer from "./fire_and_replace_reducer";
@@ -72,6 +74,7 @@ import SetWeeklyBudgetReducer from "./set_weekly_budget_reducer";
 import SetWorkerPairingCodeReducer from "./set_worker_pairing_code_reducer";
 import StartRunReducer from "./start_run_reducer";
 import UnlockSpendingReducer from "./unlock_spending_reducer";
+import UpdateRepoReducer from "./update_repo_reducer";
 import UpgradeProviderReducer from "./upgrade_provider_reducer";
 import WorkerHeartbeatReducer from "./worker_heartbeat_reducer";
 import WriteReportReducer from "./write_report_reducer";
@@ -92,6 +95,7 @@ import OnboardingRow from "./onboarding_table";
 import ProjectRow from "./project_table";
 import ProviderRow from "./provider_table";
 import ProviderConfigRow from "./provider_config_table";
+import RepoRow from "./repo_table";
 import ReportRow from "./report_table";
 import ReviewRow from "./review_table";
 import RunRow from "./run_table";
@@ -240,6 +244,17 @@ const tablesSchema = __schema({
       { name: 'provider_config_name_key', constraint: 'unique', columns: ['name'] },
     ],
   }, ProviderConfigRow),
+  repo: __table({
+    name: 'repo',
+    indexes: [
+      { accessor: 'id', name: 'repo_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'repo_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, RepoRow),
   report: __table({
     name: 'report',
     indexes: [
@@ -340,8 +355,10 @@ const reducersSchema = __reducers(
   __reducerSchema("complete_task", CompleteTaskReducer),
   __reducerSchema("configure_provider", ConfigureProviderReducer),
   __reducerSchema("connect_integration", ConnectIntegrationReducer),
+  __reducerSchema("connect_repo", ConnectRepoReducer),
   __reducerSchema("create_task", CreateTaskReducer),
   __reducerSchema("disconnect_integration", DisconnectIntegrationReducer),
+  __reducerSchema("disconnect_repo", DisconnectRepoReducer),
   __reducerSchema("dismiss_notification", DismissNotificationReducer),
   __reducerSchema("finish_run", FinishRunReducer),
   __reducerSchema("fire_and_replace", FireAndReplaceReducer),
@@ -369,6 +386,7 @@ const reducersSchema = __reducers(
   __reducerSchema("set_worker_pairing_code", SetWorkerPairingCodeReducer),
   __reducerSchema("start_run", StartRunReducer),
   __reducerSchema("unlock_spending", UnlockSpendingReducer),
+  __reducerSchema("update_repo", UpdateRepoReducer),
   __reducerSchema("upgrade_provider", UpgradeProviderReducer),
   __reducerSchema("worker_heartbeat", WorkerHeartbeatReducer),
   __reducerSchema("write_report", WriteReportReducer),

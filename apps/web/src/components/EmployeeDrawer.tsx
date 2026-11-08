@@ -314,7 +314,7 @@ export function EmployeeDrawer({ employeeId, onClose, onSelect }: { employeeId: 
               {e.status !== 'fired' && (
                 <section className="border-t border-line pt-5">
                   {e.role === 'translator' ? (
-                    <div className="text-xs text-muted">The Translator is your point of contact and can't be fired.</div>
+                    <div className="text-xs text-muted">The Chatbot is your point of contact and can't be fired.</div>
                   ) : (
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-xs text-muted">Not working out? Hire a replacement with a revised brief.</div>

@@ -93,7 +93,7 @@ function Chat() {
                 <RoleAvatar role="translator" size="md" />
                 <div className="min-w-0 max-w-[85%]">
                   <div className="mb-1 text-xs font-medium text-muted">
-                    {translator?.displayName ?? 'Translator'} · {ago(tsDate(m.at))}
+                    {translator?.displayName ?? 'Chatbot'} · {ago(tsDate(m.at))}
                   </div>
                   <div className="rounded-2xl rounded-tl-md border border-line bg-white px-4 py-2.5">
                     <Markdown>{m.text}</Markdown>
@@ -117,7 +117,7 @@ function Chat() {
                   <span className="typing-dot size-1.5 rounded-full bg-navy-400" />
                 </div>
                 {!db.settings?.workerOnline && (
-                  <div className="mt-1.5 text-xs text-muted">Your crew is offline. The Translator will answer when it reconnects.</div>
+                  <div className="mt-1.5 text-xs text-muted">Your crew is offline. The Chatbot will answer when it reconnects.</div>
                 )}
               </div>
             </div>
@@ -142,9 +142,9 @@ function Chat() {
             }
           }}
           rows={2}
-          placeholder="Ask the Translator anything about your app, your crew, or your spending"
+          placeholder="Ask the Chatbot anything about your app, your crew, or your spending"
           className="block w-full resize-none bg-transparent px-4 pt-3 text-[15px] text-ink placeholder:text-muted/70 focus:outline-none"
-          aria-label="Message the Translator"
+          aria-label="Message the Chatbot"
         />
         <div className="flex items-center justify-between px-2 pb-1">
           <div className="flex items-center gap-1.5 pl-2 text-xs text-muted">

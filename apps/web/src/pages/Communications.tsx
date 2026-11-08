@@ -195,7 +195,7 @@ function EmailPreview() {
             <p className="mt-4 text-sm text-ink">
               Your crew
               <br />
-              <span className="text-muted">Reply to this email to talk to the Translator.</span>
+              <span className="text-muted">Reply to this email to talk to the Chatbot.</span>
             </p>
             <div className="mt-6 border-t border-line pt-3 text-[11px] text-muted">
               You get these {db.settings?.commFrequency ?? 'weekly'} by {db.settings?.commChannel === 'sms' ? 'SMS' : db.settings?.commChannel === 'in_app' ? 'in-app message' : 'email'}. Change this in delivery preferences.

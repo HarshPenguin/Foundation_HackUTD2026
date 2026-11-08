@@ -97,8 +97,12 @@ export function cadenceLabel(cadence: string, runDay: number, runHour: number): 
   }
 }
 
+/** Display names for internal role ids (the `translator` role is called the Chatbot). */
+const ROLE_DISPLAY: Record<string, string> = { translator: 'Chatbot' };
+
 export function sentence(s: string): string {
   if (!s) return s;
+  if (ROLE_DISPLAY[s]) return ROLE_DISPLAY[s];
   const t = s.replace(/_/g, ' ');
   return t.charAt(0).toUpperCase() + t.slice(1);
 }

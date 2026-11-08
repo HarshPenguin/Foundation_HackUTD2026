@@ -18,7 +18,7 @@ export const TASK_TYPE_LABEL: Record<string, string> = {
   code: 'Code',
   review: 'Review and testing',
   marketing: 'Marketing',
-  chat: 'Translator chat',
+  chat: 'Chatbot chat',
   general: 'Everything else',
 };
 
