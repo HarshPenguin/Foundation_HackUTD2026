@@ -265,6 +265,7 @@ function ResetDemo() {
   const call = useCall();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [passcode, setPasscode] = useState('');
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
@@ -278,18 +279,34 @@ function ResetDemo() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
             <DialogTitle>Reset the demo?</DialogTitle>
-            <DialogDescription>Every run, chat, hire and setting goes back to the starting point.</DialogDescription>
+            <DialogDescription>Every run, chat, hire and setting goes back to the starting point. Enter the owner passcode to confirm.</DialogDescription>
+            <div className="mt-4 space-y-1.5">
+              <Label htmlFor="owner-passcode">Owner passcode</Label>
+              <Input
+                id="owner-passcode"
+                type="password"
+                autoComplete="off"
+                value={passcode}
+                onChange={e => setPasscode(e.target.value)}
+                placeholder="Owner passcode"
+              />
+            </div>
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
               <Button
-                disabled={busy}
+                disabled={busy || passcode.length === 0}
                 onClick={async () => {
                   setBusy(true);
-                  const ok = await call(r => r.resetDemo({}), 'Demo data restored');
+                  // MOCK: shared owner passcode stands in for real login. Signing in takes ownership, then resets.
+                  const owner = await call(r => r.claimOwner({ passcode }));
+                  const ok = owner && (await call(r => r.resetDemo({}), 'Demo data restored'));
                   setBusy(false);
-                  if (ok) setOpen(false);
+                  if (ok) {
+                    setPasscode('');
+                    setOpen(false);
+                  }
                 }}
               >
                 Reset

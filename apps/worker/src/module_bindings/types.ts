@@ -26,6 +26,7 @@ export const AuthConfig = __t.object("AuthConfig", {
   workerIdentity: __t.option(__t.identity()),
   ownerIdentity: __t.option(__t.identity()),
   pairingCode: __t.string(),
+  ownerPasscode: __t.string(),
 });
 export type AuthConfig = __Infer<typeof AuthConfig>;
 

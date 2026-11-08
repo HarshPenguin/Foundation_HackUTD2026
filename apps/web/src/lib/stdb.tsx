@@ -44,8 +44,7 @@ const connectionBuilder = DbConnection.builder()
   .withToken(readToken())
   .onConnect((conn, _identity, token) => {
     writeToken(token);
-    // MOCK: the first browser to connect becomes the owner. Real: Supabase/SpacetimeAuth login.
-    conn.reducers.claimOwner({}).catch(() => undefined);
+    void conn; // Ownership is claimed with the owner passcode (Settings), not on connect.
   })
   .onConnectError((_ctx, err) => {
     // A token minted by another server is rejected; start fresh next attempt.

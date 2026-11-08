@@ -291,6 +291,7 @@ export const init = spacetimedb.init(ctx => {
     workerIdentity: undefined,
     ownerIdentity: undefined,
     pairingCode: '',
+    ownerPasscode: '',
   });
   seed(ctx);
   rescheduleAll(ctx);
@@ -326,10 +327,17 @@ export const workerHeartbeat = spacetimedb.reducer(ctx => {
   ctx.db.settings.id.update({ ...s, workerOnline: true, workerLastSeenAt: ctx.timestamp });
 });
 
-// MOCK: first browser to call this becomes the owner. Real: Supabase/SpacetimeAuth login.
-export const claimOwner = spacetimedb.reducer(ctx => {
+// MOCK: a shared owner passcode stands in for real login. Real: Supabase/SpacetimeAuth.
+// The right passcode always takes ownership, even from another browser.
+export const claimOwner = spacetimedb.reducer({ passcode: t.string() }, (ctx, { passcode }) => {
   const a = auth(ctx);
-  if (a.ownerIdentity == null) ctx.db.authConfig.id.update({ ...a, ownerIdentity: ctx.sender });
+  if (a.ownerPasscode.length === 0 || passcode !== a.ownerPasscode) throw new SenderError('Wrong owner passcode');
+  ctx.db.authConfig.id.update({ ...a, ownerIdentity: ctx.sender });
+});
+
+export const setOwnerPasscode = spacetimedb.reducer({ passcode: t.string() }, (ctx, { passcode }) => {
+  if (!isAdmin(ctx)) throw new SenderError('admin only');
+  ctx.db.authConfig.id.update({ ...auth(ctx), ownerPasscode: passcode, ownerIdentity: undefined });
 });
 
 export const releaseOwner = spacetimedb.reducer(ctx => {

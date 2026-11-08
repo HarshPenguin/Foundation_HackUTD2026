@@ -11,6 +11,7 @@ export const authConfig = table(
     workerIdentity: t.option(t.identity()),
     ownerIdentity: t.option(t.identity()),
     pairingCode: t.string(),
+    ownerPasscode: t.string().default(''), // set by the admin; empty = owner sign-in disabled
   }
 );
 

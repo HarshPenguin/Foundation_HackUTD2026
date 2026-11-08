@@ -57,6 +57,7 @@ import SetCommPrefsReducer from "./set_comm_prefs_reducer";
 import SetFallbackChainReducer from "./set_fallback_chain_reducer";
 import SetManagerOptimizesReducer from "./set_manager_optimizes_reducer";
 import SetModeReducer from "./set_mode_reducer";
+import SetOwnerPasscodeReducer from "./set_owner_passcode_reducer";
 import SetThresholdReducer from "./set_threshold_reducer";
 import SetWeeklyBudgetReducer from "./set_weekly_budget_reducer";
 import SetWorkerPairingCodeReducer from "./set_worker_pairing_code_reducer";
@@ -276,6 +277,7 @@ const reducersSchema = __reducers(
   __reducerSchema("set_fallback_chain", SetFallbackChainReducer),
   __reducerSchema("set_manager_optimizes", SetManagerOptimizesReducer),
   __reducerSchema("set_mode", SetModeReducer),
+  __reducerSchema("set_owner_passcode", SetOwnerPasscodeReducer),
   __reducerSchema("set_threshold", SetThresholdReducer),
   __reducerSchema("set_weekly_budget", SetWeeklyBudgetReducer),
   __reducerSchema("set_worker_pairing_code", SetWorkerPairingCodeReducer),
