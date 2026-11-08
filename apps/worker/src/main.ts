@@ -1,4 +1,5 @@
 // Foundation worker: connects to SpacetimeDB as the registered worker and runs the AI crew.
+import './proxy';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { Db } from './db';
