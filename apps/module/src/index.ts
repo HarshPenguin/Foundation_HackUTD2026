@@ -380,7 +380,8 @@ export const reserveBudget = spacetimedb.reducer(
     if (tk.status !== 'queued') throw new SenderError(`task is ${tk.status}, not queued`);
     const s = getSettings(ctx);
     const b = getBudget(ctx);
-    const autonomous = s.mode === 'autonomous';
+    // The Chatbot never waits on a switch-or-upgrade decision: chats always switch on their own.
+    const autonomous = s.mode === 'autonomous' || tk.taskType === 'chat';
     const chain = ctx.db.fallbackChain.taskType.find(tk.taskType) ?? ctx.db.fallbackChain.taskType.find('general');
     const ids = (chain?.providerIds ?? []).filter(id => !tk.excludedProviderIds.includes(id));
 
