@@ -147,7 +147,7 @@ I built a deliberately legacy **Medicare-style claims app, "MediClaim"** (PHP 5,
 |---|---|
 | SpacetimeDB module: all budget, threshold, lock and switch rules in reducers; schedules; wake procedure; worker-only key view | Wallet balances are **allowances you set**, not read from each provider's billing |
 | Live dashboard (Vercel) on Maincloud subscriptions | Providers without a key run as **simulated** wallets with canned output |
-| Crew worker hosted on Maritime; connect a public repo, clone it, scan every file (real findings); real git branches and checks | Email: the weekly update is stored and shown in a mock inbox, not sent |
+| Crew worker hosted on Maritime; connect a public repo, clone it, scan every file (real findings); real git branches and checks | Email and texts: the weekly update is stored and shown in a mock inbox and a phone preview (with reply-to-act prompts), not sent. Next: SMS via Photon |
 | Real model adapters: OpenAI-compatible (Maritime, Hugging Face, Gemini, OpenAI, custom) and Claude (Anthropic SDK) | Login is a shared owner passcode (stand-in for Supabase Auth) |
 | Onboarding that configures providers, chains, budget and schedule | GitHub, Base44, AWS Budgets and Supabase "Connect" buttons |
 | Claude Code hooks (spend tracking, hard stop) and MCP server | "Upgrade" adds $20 of mock credit |

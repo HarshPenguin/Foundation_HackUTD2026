@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BookOpen, ClipboardCheck, Inbox, Mail, Megaphone, Newspaper, RefreshCw, ScanSearch, Star, Archive, Send } from 'lucide-react';
+import { BookOpen, ClipboardCheck, Inbox, Mail, Megaphone, MessageSquareText, Newspaper, RefreshCw, ScanSearch, Star, Archive, Send } from 'lucide-react';
+import { SmsPreview } from '@/components/SmsPreview';
 import { useDb } from '@/lib/stdb';
 import { useCall } from '@/lib/actions';
 import { tsDate, tsMs, shortDate, usd, ago } from '@/lib/format';
@@ -228,7 +229,7 @@ export function DeliveryPrefs({ compact }: { compact?: boolean }) {
       <NativeSelect className="h-8 text-[13px]" value={channel} onChange={e => save(e.target.value, freq)} aria-label="Channel">
         <option value="email">Email</option>
         <option value="in_app">In-app</option>
-        <option value="sms">SMS (demo)</option>
+        <option value="sms">Text message (preview)</option>
       </NativeSelect>
       <NativeSelect className="h-8 text-[13px]" value={freq} onChange={e => save(channel, e.target.value)} aria-label="Frequency">
         <option value="daily">Daily</option>
@@ -241,7 +242,7 @@ export function DeliveryPrefs({ compact }: { compact?: boolean }) {
 
 export default function CommunicationsPage() {
   const [params, setParams] = useSearchParams();
-  const valid = [...FEEDS.map(f => f.k as string), 'email'];
+  const valid = [...FEEDS.map(f => f.k as string), 'email', 'sms'];
   const tab = valid.includes(params.get('tab') ?? '') ? (params.get('tab') as string) : 'weekly_update';
   return (
     <div>
@@ -264,6 +265,9 @@ export default function CommunicationsPage() {
           <TabsTrigger value="email">
             <Mail /> Email preview
           </TabsTrigger>
+          <TabsTrigger value="sms">
+            <MessageSquareText /> Texts
+          </TabsTrigger>
         </TabsList>
         {FEEDS.map(f => (
           <TabsContent key={f.k} value={f.k}>
@@ -272,6 +276,9 @@ export default function CommunicationsPage() {
         ))}
         <TabsContent value="email">
           <EmailPreview />
+        </TabsContent>
+        <TabsContent value="sms">
+          <SmsPreview />
         </TabsContent>
       </Tabs>
     </div>
