@@ -7,6 +7,7 @@ import { env, sleep } from './env';
 import { Pipeline } from './pipeline';
 import { connect, registerWorker, subscribeAll, type Conn } from './stdb';
 import { ensureRepo } from './workspace';
+import { sendQueuedTexts } from './texter';
 
 const state = {
   startedAt: new Date().toISOString(),
@@ -183,6 +184,7 @@ async function main() {
   }
   setInterval(() => pipeline?.tick(), 1000);
   setInterval(() => void heartbeat(), 30_000);
+  setInterval(() => conn && void sendQueuedTexts(conn).catch(() => undefined), 15_000);
   void heartbeat();
   console.log('[worker] ready');
 
@@ -233,6 +235,10 @@ async function startSession() {
   c.db.task.onInsert(kick);
   c.db.task.onUpdate(kick);
   c.db.run.onUpdate(kick);
+  // Texts: deliver as soon as SpacetimeDB queues one.
+  const textKick = () => setTimeout(() => void sendQueuedTexts(c).catch(e => console.warn('[texts]', (e as Error).message)), 50);
+  c.db.textMessage.onInsert(textKick);
+  textKick();
   p.tick();
 }
 

@@ -1,11 +1,12 @@
-// MOCK: SMS delivery. The Communicator's texts are shown in a phone preview instead of being sent.
-// Real: call an SMS API (e.g. Photon) from the worker when the Communicator writes an update or a
-// switch_or_upgrade / budget_halt notification is created, using the owner's saved phone number.
+// Texts to the owner's phone through Photon (iMessage with SMS fallback).
+// SpacetimeDB queues texts (text_message) and receives replies on its /photon webhook route;
+// the crew delivers them with Photon's SDK. Before setup, the phone shows a preview built from live data.
 import { useMemo, useState } from 'react';
-import { MessageSquareText, Send, Smartphone } from 'lucide-react';
-import { useDb, type Db } from '@/lib/stdb';
+import { Check, CheckCheck, Copy, MessageSquareText, Power, Send, Smartphone, TriangleAlert } from 'lucide-react';
+import { STDB_DB, STDB_URI, useDb, type Db } from '@/lib/stdb';
+import { useCall } from '@/lib/actions';
 import { tsDate as tsDateOrNull, usd } from '@/lib/format';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, MockTag } from '@/components/ui/primitives';
+import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, MockTag } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
 
 const PHONE_KEY = 'foundation.sms.phone';
@@ -16,6 +17,7 @@ interface Text {
   at: Date;
   body: string;
   from: 'foundation' | 'you';
+  status?: string;
 }
 
 function readPhone(): string {
@@ -84,21 +86,50 @@ function timeLabel(d: Date) {
   return d.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
 }
 
+function webhookUrl(secret: string) {
+  const base = STDB_URI.replace(/^ws/, 'http').replace(/\/$/, '');
+  return `${base}/v1/database/${STDB_DB}/route/photon?secret=${secret}`;
+}
+
 export function SmsPreview() {
   const db = useDb();
+  const call = useCall();
+  const m = db.messaging;
+  const live = Boolean(m?.enabled);
+  const [address, setAddress] = useState('');
+  const [token, setToken] = useState('');
+  const [server, setServer] = useState('');
   const [phone, setPhone] = useState(readPhone);
-  const [saved, setSaved] = useState(Boolean(readPhone()));
-  const [extra, setExtra] = useState<Text[]>([]);
-  const texts = useMemo(() => [...textsFrom(db), ...extra], [db, extra]);
-  const valid = /^\+?[0-9 ()-]{7,20}$/.test(phone.trim());
+  const [passcode, setPasscode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const preview = useMemo(() => textsFrom(db), [db]);
+  const realTexts: Text[] = db.textMessages.slice(-30).map(t => ({
+    id: `x${t.id}`,
+    at: tsDate(t.createdAt),
+    body: t.body,
+    from: t.direction === 'in' ? 'you' : 'foundation',
+    status: t.status,
+  }));
+  const texts = live ? realTexts : preview;
+  const validPhone = /^\+?[0-9 ()-]{7,20}$/.test(phone.trim());
 
-  const sendTest = () => {
-    const now = new Date();
-    setExtra(x => [
-      ...x,
-      { id: `t${now.getTime()}`, at: now, from: 'foundation', body: `Foundation: this is a test. You'll get your crew's updates and any "switch or upgrade" questions at ${phone.trim()}.` },
-    ]);
+  const save = async () => {
+    setBusy(true);
+    const owner = passcode ? await call(r => r.claimOwner({ passcode })) : true;
+    const ok = owner && (await call(r => r.configureMessaging({ address: address.trim(), token: token.trim(), server: server.trim(), phone: phone.trim() }), 'Texts are on'));
+    setBusy(false);
+    if (ok) {
+      writePhone(phone.trim());
+      setToken('');
+      setPasscode('');
+      setEditing(false);
+    }
   };
+
+  const showForm = !live || editing;
+  const failed = [...db.textMessages].reverse().find(t => t.status === 'failed');
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -108,37 +139,81 @@ export function SmsPreview() {
             <CardTitle className="flex items-center gap-2">
               <MessageSquareText className="size-4" /> Text messages
             </CardTitle>
-            <CardDescription>Your weekly update and any decisions that need you, as short texts. Reply to answer from your phone.</CardDescription>
+            <CardDescription>Your weekly update and any decisions that need you, as short texts. Reply with one word to act from your phone.</CardDescription>
           </div>
-          <MockTag>Preview: texts aren&rsquo;t sent yet</MockTag>
+          {live ? <Badge tone="ok">On · Photon · ••{m?.phoneLast4}</Badge> : <MockTag>Not set up yet</MockTag>}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
-            <div className="space-y-1.5">
-              <Label htmlFor="sms-phone">Your phone number</Label>
-              <Input id="sms-phone" inputMode="tel" placeholder="+1 214 555 0142" value={phone} onChange={e => setPhone(e.target.value)} />
+          {live && !editing && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={() => void call(r => r.sendTestText({}), 'Test text queued')}>
+                <Send /> Send me a test text
+              </Button>
+              <Button variant="outline" onClick={() => setEditing(true)}>
+                Change settings
+              </Button>
+              <Button variant="ghost" onClick={() => void call(r => r.disableMessaging({}), 'Texts are off')}>
+                <Power /> Turn off
+              </Button>
+              <span className="text-xs text-muted">
+                {m?.lastSentAt ? `Last text sent ${tsDate(m.lastSentAt).toLocaleString()}` : 'No texts sent yet'}
+              </span>
             </div>
-            <Button
-              variant="outline"
-              disabled={!valid}
-              onClick={() => {
-                writePhone(phone.trim());
-                setSaved(true);
-              }}
-            >
-              Save number
-            </Button>
-            <Button disabled={!valid} onClick={sendTest}>
-              <Send /> Text me a test
-            </Button>
-          </div>
+          )}
+          {live && (m?.lastError || failed) && (
+            <p className="flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0" /> Last send failed: {m?.lastError || failed?.error}
+            </p>
+          )}
+
+          {showForm && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field id="ph-address" label="Photon server address" value={address} onChange={setAddress} placeholder={m?.address || 'From your Photon dashboard'} />
+              <Field id="ph-token" label="Photon token" type="password" value={token} onChange={setToken} placeholder={m?.hasToken ? 'Saved. Leave blank to keep it' : 'From your Photon dashboard'} />
+              <Field id="ph-server" label="Instance ID (optional)" value={server} onChange={setServer} placeholder={m?.server || 'Only for a dedicated instance'} />
+              <Field id="sms-phone" label="Your phone number" value={phone} onChange={setPhone} placeholder="+1 214 555 0142" inputMode="tel" />
+              <Field id="ph-pass" label="Owner passcode" type="password" value={passcode} onChange={setPasscode} placeholder="If asked" />
+              <div className="flex items-end gap-2">
+                <Button disabled={busy || !validPhone || !(address.trim() || m?.address)} onClick={() => void save()}>
+                  {live ? 'Save' : 'Turn on texts'}
+                </Button>
+                {editing && (
+                  <Button variant="ghost" onClick={() => setEditing(false)}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted sm:col-span-2">The token and your number go to a private table only your crew can read. They never come back to this browser.</p>
+            </div>
+          )}
+
+          {live && db.webhookSecret && (
+            <div className="rounded-xl bg-navy-50 px-3 py-3 text-sm">
+              <div className="mb-1 font-medium text-ink">Let replies reach your crew</div>
+              <p className="mb-2 text-xs text-muted">In Photon, add this as your webhook for incoming messages. Only texts from your number are accepted.</p>
+              <div className="flex items-center gap-2">
+                <code className="min-w-0 flex-1 truncate rounded bg-white px-2 py-1 text-[11px]">{webhookUrl(db.webhookSecret)}</code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(webhookUrl(db.webhookSecret!)).catch(() => undefined);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                  }}
+                >
+                  {copied ? <Check /> : <Copy />} {copied ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
-            <li>Weekly update in two lines, with a link to the full report.</li>
-            <li>&ldquo;Switch or upgrade&rdquo; questions in Manual mode: reply 1 or 2.</li>
-            <li>Budget stops: reply UNLOCK to keep going this week.</li>
-            <li>Audit results when you connect a repo: reply FIX to start.</li>
+            <li>Weekly update in two lines, plus audit results when you connect a repo.</li>
+            <li>Reply 1 to switch models or 2 to add credit when a model runs out.</li>
+            <li>Reply UNLOCK to keep going after a budget stop, or FIX to start repairs.</li>
+            <li>Text anything else and the Chatbot texts back.</li>
           </ul>
-          {saved && <p className="text-xs text-muted">Saved on this device. Turn on SMS in your delivery preferences to use it as your update channel.</p>}
         </CardContent>
       </Card>
 
@@ -150,23 +225,38 @@ export function SmsPreview() {
             <div className="grid size-9 place-items-center rounded-full bg-navy-800 text-sm font-semibold text-amber-300">F</div>
             <div className="text-sm font-semibold text-ink">Foundation</div>
             <div className="flex items-center gap-1 text-[11px] text-muted">
-              <Smartphone className="size-3" /> {saved && phone ? phone : 'Your phone'}
+              <Smartphone className="size-3" /> {live ? `••${m?.phoneLast4}` : 'Preview'}
             </div>
           </div>
           <div className="flex h-[460px] flex-col gap-2 overflow-y-auto px-3 py-3">
-            {texts.length === 0 && <p className="mt-10 text-center text-sm text-muted">Texts from your crew will show up here.</p>}
+            {texts.length === 0 && <p className="mt-10 text-center text-sm text-muted">Texts with your crew will show up here.</p>}
             {texts.map(t => (
-              <div key={t.id} className={t.from === 'you' ? 'self-end' : 'self-start'}>
+              <div key={t.id} className={t.from === 'you' ? 'self-end text-right' : 'self-start'}>
                 <div className="mb-0.5 text-[10px] text-muted">{timeLabel(t.at)}</div>
-                <div className={`max-w-[250px] rounded-2xl px-3 py-2 text-[13px] leading-snug ${t.from === 'you' ? 'rounded-br-md bg-navy-800 text-white' : 'rounded-bl-md bg-navy-50 text-ink'}`}>
+                <div className={`inline-block max-w-[250px] rounded-2xl px-3 py-2 text-left text-[13px] leading-snug ${t.from === 'you' ? 'rounded-br-md bg-navy-800 text-white' : 'rounded-bl-md bg-navy-50 text-ink'}`}>
                   {t.body}
                 </div>
+                {t.from === 'foundation' && t.status && t.status !== 'received' && (
+                  <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted">
+                    {t.status === 'sent' ? <CheckCheck className="size-3" /> : t.status === 'failed' ? <TriangleAlert className="size-3 text-red-600" /> : null}
+                    {t.status === 'sent' ? 'Delivered' : t.status === 'failed' ? 'Not sent' : 'Sending'}
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <div className="border-t border-line px-3 py-2 text-xs text-muted">Text message</div>
+          <div className="border-t border-line px-3 py-2 text-xs text-muted">iMessage</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Field(props: { id: string; label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; inputMode?: 'tel' }) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={props.id}>{props.label}</Label>
+      <Input id={props.id} type={props.type} inputMode={props.inputMode} value={props.value} onChange={e => props.onChange(e.target.value)} placeholder={props.placeholder} autoComplete="off" />
     </div>
   );
 }

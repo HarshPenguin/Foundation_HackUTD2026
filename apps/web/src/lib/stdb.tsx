@@ -22,6 +22,8 @@ import type {
   Task,
   WakeEvent,
   Repo,
+  Messaging,
+  TextMessage,
 } from '@/module_bindings/types';
 
 export const STDB_URI: string = import.meta.env.VITE_STDB_URI || 'ws://127.0.0.1:3000';
@@ -84,6 +86,9 @@ export interface Db {
   /** Newest first. */
   wakeEvents: readonly WakeEvent[];
   repo?: Repo;
+  messaging?: Messaging;
+  textMessages: readonly TextMessage[];
+  webhookSecret?: string;
 }
 
 const DbContext = createContext<Db | null>(null);
@@ -111,7 +116,10 @@ export function DbProvider({ children }: { children: ReactNode }) {
   const [onboarding, r18] = useTable(tables.onboarding);
   const [wakeEvents, r19] = useTable(tables.wakeEvent);
   const [repoRows, r20] = useTable(tables.repo);
-  const ready = r1 && r2 && r3 && r4 && r5 && r6 && r7 && r8 && r9 && r10 && r11 && r12 && r13 && r14 && r15 && r16 && r17 && r18 && r19 && r20;
+  const [messagingRows, r21] = useTable(tables.messaging);
+  const [textRows, r22] = useTable(tables.textMessage);
+  const [webhookRows] = useTable(tables.ownerWebhook);
+  const ready = r1 && r2 && r3 && r4 && r5 && r6 && r7 && r8 && r9 && r10 && r11 && r12 && r13 && r14 && r15 && r16 && r17 && r18 && r19 && r20 && r21 && r22;
 
   const value = useMemo<Db>(
     () => ({
@@ -139,8 +147,11 @@ export function DbProvider({ children }: { children: ReactNode }) {
       onboarding: onboarding.find(o => o.id === 0) ?? onboarding[0],
       wakeEvents: [...wakeEvents].sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)),
       repo: repoRows.find(r => r.id === 0),
+      messaging: messagingRows.find(m => m.id === 0),
+      textMessages: [...textRows].sort((a, b) => (a.id < b.id ? -1 : 1)),
+      webhookSecret: webhookRows[0]?.secret,
     }),
-    [ready, settings, budget, project, employees, providers, chains, spendEvents, runs, tasks, activity, notifications, chat, reports, reviews, integrations, externalSessions, providerConfigs, onboarding, wakeEvents, repoRows]
+    [ready, settings, budget, project, employees, providers, chains, spendEvents, runs, tasks, activity, notifications, chat, reports, reviews, integrations, externalSessions, providerConfigs, onboarding, wakeEvents, repoRows, messagingRows, textRows, webhookRows]
   );
   return <DbContext.Provider value={value}>{children}</DbContext.Provider>;
 }

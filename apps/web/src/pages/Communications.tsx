@@ -229,7 +229,7 @@ export function DeliveryPrefs({ compact }: { compact?: boolean }) {
       <NativeSelect className="h-8 text-[13px]" value={channel} onChange={e => save(e.target.value, freq)} aria-label="Channel">
         <option value="email">Email</option>
         <option value="in_app">In-app</option>
-        <option value="sms">Text message (preview)</option>
+        <option value="sms">Text message</option>
       </NativeSelect>
       <NativeSelect className="h-8 text-[13px]" value={freq} onChange={e => save(channel, e.target.value)} aria-label="Frequency">
         <option value="daily">Daily</option>

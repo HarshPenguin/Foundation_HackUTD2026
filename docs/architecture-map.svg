@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+    <marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d97706"/>
+    </marker>
+  </defs>
+  <rect width="1600" height="900" fill="#f8fafc"/>
+  <text x="60" y="70" font-size="34" font-weight="700" fill="#1e293b">How Foundation works</text>
+  <text x="60" y="104" font-size="18" fill="#64748b">Highlighted: SpacetimeDB and Photon API</text>
+
+  <!-- Owner -->
+  <rect x="60" y="300" width="230" height="140" rx="18" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="175" y="355" text-anchor="middle" font-size="22" font-weight="700" fill="#1e293b">You (the owner)</text>
+  <text x="175" y="385" text-anchor="middle" font-size="16" fill="#64748b">browser + phone</text>
+
+  <!-- Web app -->
+  <rect x="370" y="170" width="290" height="140" rx="18" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="515" y="222" text-anchor="middle" font-size="22" font-weight="700" fill="#1e293b">Foundation app</text>
+  <text x="515" y="250" text-anchor="middle" font-size="16" fill="#64748b">React on Vercel</text>
+  <text x="515" y="276" text-anchor="middle" font-size="15" fill="#64748b">Chatbot · Finances · Developers</text>
+
+  <!-- Claude Code -->
+  <rect x="370" y="560" width="290" height="120" rx="18" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="515" y="610" text-anchor="middle" font-size="22" font-weight="700" fill="#1e293b">Claude Code</text>
+  <text x="515" y="640" text-anchor="middle" font-size="16" fill="#64748b">spend caps + crew tools (MCP)</text>
+
+  <!-- SpacetimeDB (highlight) -->
+  <rect x="740" y="240" width="380" height="330" rx="22" fill="#fffbeb" stroke="#f59e0b" stroke-width="4"/>
+  <rect x="760" y="258" width="132" height="30" rx="15" fill="#f59e0b"/>
+  <text x="826" y="279" text-anchor="middle" font-size="15" font-weight="700" fill="#1e293b">TRACK</text>
+  <text x="930" y="330" text-anchor="middle" font-size="28" font-weight="800" fill="#1e293b">SpacetimeDB</text>
+  <text x="930" y="358" text-anchor="middle" font-size="16" fill="#92400e">the crew's office and rulebook</text>
+  <g font-size="17" fill="#1e293b">
+    <text x="785" y="402">• Live tables, no polling</text>
+    <text x="785" y="434">• $0 hard stop + model switching</text>
+    <text x="805" y="466">inside reducers</text>
+    <text x="785" y="498">• Schedules run the crew weekly</text>
+    <text x="785" y="530">• Keys visible only to the crew</text>
+  </g>
+
+  <!-- Maritime crew -->
+  <rect x="1200" y="170" width="340" height="170" rx="18" fill="#1e293b"/>
+  <text x="1370" y="222" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">AI crew on Maritime</text>
+  <text x="1370" y="252" text-anchor="middle" font-size="16" fill="#cbd5e1">Auditor · Manager · Developers</text>
+  <text x="1370" y="278" text-anchor="middle" font-size="16" fill="#cbd5e1">Tester · Purser · Communicator</text>
+  <text x="1370" y="312" text-anchor="middle" font-size="14" fill="#fcd34d">woken by SpacetimeDB when work arrives</text>
+
+  <!-- Models -->
+  <rect x="1200" y="410" width="340" height="110" rx="18" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="1370" y="455" text-anchor="middle" font-size="20" font-weight="700" fill="#1e293b">Any AI model</text>
+  <text x="1370" y="485" text-anchor="middle" font-size="15" fill="#64748b">Claude · Gemini · Hugging Face · OpenAI</text>
+
+  <!-- Repo -->
+  <rect x="1200" y="560" width="340" height="110" rx="18" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="1370" y="605" text-anchor="middle" font-size="20" font-weight="700" fill="#1e293b">Your legacy repo</text>
+  <text x="1370" y="635" text-anchor="middle" font-size="15" fill="#64748b">cloned, scanned, fixed on branches</text>
+
+  <!-- Photon (highlight) -->
+  <rect x="740" y="690" width="380" height="140" rx="22" fill="#fffbeb" stroke="#f59e0b" stroke-width="4"/>
+  <rect x="760" y="708" width="132" height="30" rx="15" fill="#f59e0b"/>
+  <text x="826" y="729" text-anchor="middle" font-size="15" font-weight="700" fill="#1e293b">TRACK</text>
+  <text x="930" y="772" text-anchor="middle" font-size="26" font-weight="800" fill="#1e293b">Photon API</text>
+  <text x="930" y="802" text-anchor="middle" font-size="16" fill="#92400e">weekly updates + one-word replies by text</text>
+
+  <!-- Arrows -->
+  <g stroke="#64748b" stroke-width="3" fill="none">
+    <path d="M290 340 C330 300 340 260 368 250" marker-end="url(#a)"/>
+    <path d="M660 250 C700 260 710 300 738 320" marker-end="url(#a)" marker-start="url(#a)"/>
+    <path d="M660 620 C700 600 710 560 738 530" marker-end="url(#a)"/>
+    <path d="M1200 280 C1170 300 1150 320 1122 340" marker-end="url(#a)" marker-start="url(#a)"/>
+    <path d="M1370 340 L1370 408" marker-end="url(#a)"/>
+    <path d="M1540 280 C1590 380 1590 520 1542 600" marker-end="url(#a)"/>
+  </g>
+  <g stroke="#d97706" stroke-width="3" fill="none">
+    <path d="M1120 420 C1170 400 1180 360 1200 340" stroke-dasharray="8 7" marker-end="url(#h)"/>
+    <path d="M930 570 L930 688" marker-end="url(#h)"/>
+    <path d="M740 790 C420 880 175 760 175 442" marker-end="url(#h)" marker-start="url(#h)"/>
+  </g>
+  <text x="1160" y="430" font-size="13" fill="#92400e">wake</text>
+</svg>

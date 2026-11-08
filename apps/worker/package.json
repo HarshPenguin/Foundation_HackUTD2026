@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
     "@foundation/shared": "workspace:*",
+    "@photon-ai/advanced-imessage": "2.5.0",
     "dotenv": "^18.0.9",
     "openai": "^7.53.0",
     "spacetimedb": "2.14.1",

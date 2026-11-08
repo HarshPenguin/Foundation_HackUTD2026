@@ -125,6 +125,29 @@ export const IntegrationAuth = __t.object("IntegrationAuth", {
 });
 export type IntegrationAuth = __Infer<typeof IntegrationAuth>;
 
+export const Messaging = __t.object("Messaging", {
+  id: __t.u32(),
+  provider: __t.string(),
+  address: __t.string(),
+  server: __t.string(),
+  hasToken: __t.bool(),
+  phoneLast4: __t.string(),
+  enabled: __t.bool(),
+  lastSentAt: __t.option(__t.timestamp()),
+  lastInboundAt: __t.option(__t.timestamp()),
+  lastError: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type Messaging = __Infer<typeof Messaging>;
+
+export const MessagingSecret = __t.object("MessagingSecret", {
+  id: __t.u32(),
+  token: __t.string(),
+  phone: __t.string(),
+  webhookSecret: __t.string(),
+});
+export type MessagingSecret = __Infer<typeof MessagingSecret>;
+
 export const Notification = __t.object("Notification", {
   id: __t.u64(),
   kind: __t.string(),
@@ -151,6 +174,14 @@ export const Onboarding = __t.object("Onboarding", {
   },
 });
 export type Onboarding = __Infer<typeof Onboarding>;
+
+export const OwnerWebhook = __t.object("OwnerWebhook", {});
+export type OwnerWebhook = __Infer<typeof OwnerWebhook>;
+
+export const OwnerWebhookRow = __t.object("OwnerWebhookRow", {
+  secret: __t.string(),
+});
+export type OwnerWebhookRow = __Infer<typeof OwnerWebhookRow>;
 
 export const Project = __t.object("Project", {
   id: __t.u64(),
@@ -307,6 +338,18 @@ export const Task = __t.object("Task", {
 });
 export type Task = __Infer<typeof Task>;
 
+export const TextMessage = __t.object("TextMessage", {
+  id: __t.u64(),
+  direction: __t.string(),
+  kind: __t.string(),
+  body: __t.string(),
+  status: __t.string(),
+  error: __t.string(),
+  createdAt: __t.timestamp(),
+  sentAt: __t.option(__t.timestamp()),
+});
+export type TextMessage = __Infer<typeof TextMessage>;
+
 export const WakeConfig = __t.object("WakeConfig", {
   id: __t.u32(),
   url: __t.string(),
@@ -336,6 +379,9 @@ export const WeekRolloverTimer = __t.object("WeekRolloverTimer", {
 });
 export type WeekRolloverTimer = __Infer<typeof WeekRolloverTimer>;
 
+export const WorkerMessaging = __t.object("WorkerMessaging", {});
+export type WorkerMessaging = __Infer<typeof WorkerMessaging>;
+
 export const WorkerSecret = __t.object("WorkerSecret", {});
 export type WorkerSecret = __Infer<typeof WorkerSecret>;
 
@@ -344,4 +390,10 @@ export const WorkerSecretRow = __t.object("WorkerSecretRow", {
   apiKey: __t.string(),
 });
 export type WorkerSecretRow = __Infer<typeof WorkerSecretRow>;
+
+export const WorkerTextRow = __t.object("WorkerTextRow", {
+  token: __t.string(),
+  phone: __t.string(),
+});
+export type WorkerTextRow = __Infer<typeof WorkerTextRow>;
 

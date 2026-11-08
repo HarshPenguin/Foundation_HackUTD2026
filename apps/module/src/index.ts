@@ -1,4 +1,4 @@
-import { t, SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
+import { Router, SenderError, SyncResponse, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import { ScheduleAt, Timestamp } from 'spacetimedb';
 import spacetimedb, { ChainChoice, cadenceTimer, reservationTimer, wakeTimer, weekRolloverTimer } from './schema';
 import { seed, wipe } from './seed';
@@ -75,6 +75,7 @@ function notify(
   taskId?: bigint,
   providerId?: bigint
 ) {
+  textForNotification(ctx, kind, title, body);
   ctx.db.notification.insert({
     id: 0n,
     kind,
@@ -695,6 +696,9 @@ export const completeTask = spacetimedb.reducer(
       diff: a.diff.slice(0, 40000),
       updatedAt: ctx.timestamp,
     });
+    if (tk.taskType === 'chat' && tk.title === TEXT_REPLY_TITLE && a.status === 'done') {
+      queueText(ctx, 'chat', `Foundation: ${plainText(a.output)}`);
+    }
     if (tk.taskType === 'chat') {
       ctx.db.chatMessage.insert({ id: 0n, role: 'translator', text: a.output.slice(0, 4000), directiveJson: a.directiveJson, taskId: tk.id, at: ctx.timestamp });
     }
@@ -721,6 +725,10 @@ export const writeReport = spacetimedb.reducer(
   (ctx, a) => {
     requireWorker(ctx);
     ctx.db.report.insert({ id: 0n, ...a, bodyMd: a.bodyMd.slice(0, 20000), at: ctx.timestamp });
+    if (a.kind === 'weekly_update') {
+      const b = getBudget(ctx);
+      queueText(ctx, 'update', `Foundation weekly update: ${firstSentences(a.bodyMd.replace(/^Hi [^.]+\.\s*/, ''), 2)} ${usd(b.spentMicros)} of ${usd(b.limitMicros)} used this week.`);
+    }
   }
 );
 
@@ -978,7 +986,7 @@ export const wakeCrew = spacetimedb.procedure(
       const cfg = tx.db.wakeConfig.id.find(0);
       const seen = tx.db.settings.id.find(0)?.workerLastSeenAt?.microsSinceUnixEpoch ?? 0n;
       const awake = tx.timestamp.microsSinceUnixEpoch - seen < WAKE_AFTER_SILENT - 10_000_000n;
-      const waiting = [...tx.db.task.iter()].some(t => t.status === 'queued' || t.status === 'reserved');
+      const waiting = [...tx.db.task.iter()].some(t => t.status === 'queued' || t.status === 'reserved') || [...tx.db.textMessage.iter()].some(m => m.status === 'queued');
       return { cfg, awake, waiting };
     });
     const cfg = check.cfg;
@@ -1217,8 +1225,204 @@ export const updateRepo = spacetimedb.reducer(
       updatedAt: ctx.timestamp,
     });
     if (ready) {
+      queueText(ctx, 'audit', `Foundation: the Auditor finished reading ${r.name}. ${a.findings} risks found, health ${a.healthScore}/100. Reply FIX to have your crew start on the top two.`);
       const proj = [...ctx.db.project.iter()][0];
       if (proj) ctx.db.project.id.update({ ...proj, name: r.name, repoPath: r.url, stackSummary: a.languages || proj.stackSummary, healthScore: a.healthScore, lastAuditAt: ctx.timestamp });
     }
   }
 );
+
+// ------------------------------------------------------------- texts to the owner's phone (Photon)
+
+const TEXT_MAX = 600;
+
+function plainText(md: string): string {
+  return md
+    .replace(/[*_`#>|]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function firstSentences(s: string, n: number): string {
+  return plainText(s).split(/(?<=[.!?])\s/).slice(0, n).join(' ');
+}
+
+/** Queues a text for the crew to send through Photon. No-op unless texting is set up. */
+function queueText(ctx: Ctx, kind: string, body: string) {
+  const m = ctx.db.messaging.id.find(0);
+  if (!m || !m.enabled) return;
+  ctx.db.textMessage.insert({
+    id: 0n, direction: 'out', kind, body: body.slice(0, TEXT_MAX), status: 'queued', error: '', createdAt: ctx.timestamp, sentAt: undefined,
+  });
+  maybeWakeCrew(ctx, 'Send a text');
+}
+
+function textForNotification(ctx: Ctx, kind: string, title: string, body: string) {
+  if (kind === 'switch_or_upgrade') queueText(ctx, 'switch', `Foundation: ${title}. ${firstSentences(body, 1)} Reply 1 to switch models, 2 to add $20.`);
+  else if (kind === 'budget_halt') queueText(ctx, 'halt', `Foundation: ${title}. Your crew stopped instead of spending more. Reply UNLOCK to keep going this week.`);
+  else if (kind === 'info' && title.startsWith('Switched from')) queueText(ctx, 'switch', `Foundation: ${title}. Your crew kept working. No action needed.`);
+}
+
+export const configureMessaging = spacetimedb.reducer(
+  { address: t.string(), token: t.string(), server: t.string(), phone: t.string() },
+  (ctx, a) => {
+    requireOwner(ctx);
+    const address = a.address.trim();
+    const phone = a.phone.replace(/[^0-9+]/g, '');
+    if (!address) throw new SenderError('Paste your Photon server address');
+    if (!/^\+?[0-9]{7,15}$/.test(phone)) throw new SenderError('Enter your phone number with country code, like +1 214 555 0142');
+    const prev = ctx.db.messagingSecret.id.find(0);
+    const token = a.token.trim() || prev?.token || '';
+    if (!token) throw new SenderError('Paste your Photon token');
+    // A random webhook secret, made with the reducer's deterministic RNG.
+    const secret = prev?.webhookSecret || [...ctx.random.fill(new Uint8Array(18))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const secretRow = { id: 0, token, phone: phone.startsWith('+') ? phone : `+${phone}`, webhookSecret: secret };
+    if (prev) ctx.db.messagingSecret.id.update(secretRow);
+    else ctx.db.messagingSecret.insert(secretRow);
+    const row = {
+      id: 0, provider: 'photon', address, server: a.server.trim(), hasToken: true, phoneLast4: phone.slice(-4), enabled: true,
+      lastSentAt: ctx.db.messaging.id.find(0)?.lastSentAt, lastInboundAt: ctx.db.messaging.id.find(0)?.lastInboundAt, lastError: '', updatedAt: ctx.timestamp,
+    };
+    if (ctx.db.messaging.id.find(0)) ctx.db.messaging.id.update(row);
+    else ctx.db.messaging.insert(row);
+    ctx.db.settings.id.update({ ...getSettings(ctx), commChannel: 'sms' });
+    log(ctx, 0n, activeByRole(ctx, 'communicator')?.id ?? 0n, 'info', `Texts are on. The Communicator will text the number ending ${phone.slice(-4)}`);
+  }
+);
+
+export const disableMessaging = spacetimedb.reducer(ctx => {
+  requireOwner(ctx);
+  const m = ctx.db.messaging.id.find(0);
+  if (m) ctx.db.messaging.id.update({ ...m, enabled: false, updatedAt: ctx.timestamp });
+});
+
+export const sendTestText = spacetimedb.reducer(ctx => {
+  requireOwner(ctx);
+  const m = ctx.db.messaging.id.find(0);
+  if (!m || !m.enabled) throw new SenderError('Set up texts first');
+  queueText(ctx, 'test', "Foundation: this is a test. You'll get your crew's updates here. Reply 1 or 2 to answer switch-or-upgrade questions, UNLOCK to keep going after a budget stop, FIX to start repairs, or ask anything.");
+});
+
+export const markTextSent = spacetimedb.reducer({ id: t.u64(), ok: t.bool(), error: t.string() }, (ctx, { id, ok, error }) => {
+  requireWorker(ctx);
+  const msg = ctx.db.textMessage.id.find(id);
+  if (!msg) return;
+  ctx.db.textMessage.id.update({ ...msg, status: ok ? 'sent' : 'failed', error: error.slice(0, 300), sentAt: ok ? ctx.timestamp : undefined });
+  const m = ctx.db.messaging.id.find(0);
+  if (m) ctx.db.messaging.id.update({ ...m, lastSentAt: ok ? ctx.timestamp : m.lastSentAt, lastError: ok ? '' : error.slice(0, 300) });
+});
+
+const WorkerTextRow = t.object('WorkerTextRow', { token: t.string(), phone: t.string() });
+/** Only the registered worker gets the Photon token and phone number. */
+export const workerMessaging = spacetimedb.view({ name: 'worker_messaging', public: true }, t.array(WorkerTextRow), ctx => {
+  const a = ctx.db.authConfig.id.find(0);
+  if (!a || !a.workerIdentity || !a.workerIdentity.isEqual(ctx.sender)) return [];
+  const s = ctx.db.messagingSecret.id.find(0);
+  return s ? [{ token: s.token, phone: s.phone }] : [];
+});
+
+const OwnerWebhookRow = t.object('OwnerWebhookRow', { secret: t.string() });
+/** Only the owner (or admin) sees the webhook secret, to paste the URL into Photon. */
+export const ownerWebhook = spacetimedb.view({ name: 'owner_webhook', public: true }, t.array(OwnerWebhookRow), ctx => {
+  const a = ctx.db.authConfig.id.find(0);
+  const allowed = a && (a.adminIdentity.isEqual(ctx.sender) || (a.ownerIdentity != null && a.ownerIdentity.isEqual(ctx.sender)));
+  const s = ctx.db.messagingSecret.id.find(0);
+  return allowed && s ? [{ secret: s.webhookSecret }] : [];
+});
+
+const digits = (s: string) => s.replace(/[^0-9]/g, '');
+
+/** A text from the owner: 1 / 2 / UNLOCK / FIX act right away; anything else goes to the Chatbot. */
+function handleInboundText(ctx: Ctx, text: string): string {
+  const body = text.trim();
+  ctx.db.textMessage.insert({ id: 0n, direction: 'in', kind: 'command', body: body.slice(0, TEXT_MAX), status: 'received', error: '', createdAt: ctx.timestamp, sentAt: undefined });
+  const m = ctx.db.messaging.id.find(0);
+  if (m) ctx.db.messaging.id.update({ ...m, lastInboundAt: ctx.timestamp });
+  const word = body.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const pending = [...ctx.db.notification.iter()].filter(n => !n.resolved && n.kind === 'switch_or_upgrade').sort((x, y) => (x.id < y.id ? 1 : -1))[0];
+  try {
+    if ((word === '1' || word === '2') && pending) {
+      const choice = word === '1' ? 'switch' : 'upgrade';
+      if (choice === 'upgrade' && pending.providerId != null) upgrade(ctx, pending.providerId);
+      if (pending.taskId != null) {
+        const tk = ctx.db.task.id.find(pending.taskId);
+        if (tk && tk.status === 'waiting_user') {
+          const excluded = choice === 'switch' && pending.providerId != null ? [...tk.excludedProviderIds, pending.providerId] : tk.excludedProviderIds;
+          ctx.db.task.id.update({ ...tk, status: 'queued', excludedProviderIds: excluded, blockReason: '', updatedAt: ctx.timestamp });
+        }
+      }
+      ctx.db.notification.id.update({ ...pending, resolved: true });
+      queueText(ctx, 'reply', choice === 'switch' ? 'Foundation: switched. Your crew is back to work.' : 'Foundation: added $20 of credit. Your crew is back to work.');
+      return 'ok';
+    }
+    if (word === 'UNLOCK') {
+      const b = getBudget(ctx);
+      ctx.db.budget.id.update({ ...b, spendLocked: false, autonomousHalted: false });
+      log(ctx, 0n, 0n, 'budget', 'Spending unlocked by text until the end of the week');
+      queueText(ctx, 'reply', 'Foundation: spending unlocked until the end of the week. Your crew will keep going.');
+      return 'ok';
+    }
+    if (word === 'FIX' || word === 'RUN') {
+      const mgr = activeByRole(ctx, 'manager');
+      if (mgr && ![...ctx.db.run.iter()].some(r => r.status === 'running' && r.trigger !== 'chat')) {
+        const r = createRun(ctx, 'manual', mgr.id, 'Plan fixes requested by text', 'The owner texted FIX.');
+        log(ctx, r.id, mgr.id, 'plan', `${mgr.displayName} started a run you requested by text`);
+        queueText(ctx, 'reply', 'Foundation: on it. Your crew is planning fixes now. I will text you when it is done.');
+      } else {
+        queueText(ctx, 'reply', 'Foundation: your crew is already working. I will text you when it is done.');
+      }
+      return 'ok';
+    }
+  } catch (e) {
+    queueText(ctx, 'reply', `Foundation: I couldn't do that: ${String((e as Error).message ?? e).slice(0, 160)}`);
+    return 'ok';
+  }
+  // Anything else: ask the Chatbot, which texts the answer back.
+  const tr = activeByRole(ctx, 'translator');
+  if (!tr) return 'ok';
+  let r = [...ctx.db.run.iter()].find(x => x.trigger === 'chat' && x.status === 'running');
+  if (!r) r = ctx.db.run.insert({ id: 0n, trigger: 'chat', status: 'running', summary: 'Chat with the Chatbot', startedAt: ctx.timestamp, endedAt: undefined, totalMicros: 0n });
+  const tk = insertTask(ctx, r.id, tr.id, 'chat', TEXT_REPLY_TITLE, body.slice(0, 2000));
+  ctx.db.chatMessage.insert({ id: 0n, role: 'user', text: `(by text) ${body.slice(0, 2000)}`, directiveJson: '', taskId: tk.id, at: ctx.timestamp });
+  return 'ok';
+}
+
+const TEXT_REPLY_TITLE = 'Answer the owner by text';
+
+/** Photon webhook: POST https://<maincloud>/.../photon?secret=... with a message.received event. */
+export const photonWebhook = spacetimedb.httpHandler((ctx, req) => {
+  let secret = '';
+  try {
+    secret = new URL(req.url).searchParams.get('secret') ?? '';
+  } catch {
+    secret = /[?&]secret=([^&]+)/.exec(req.url)?.[1] ?? '';
+  }
+  let ev: any;
+  try {
+    ev = req.json();
+  } catch {
+    return new SyncResponse('bad json', { status: 400 });
+  }
+  const result = ctx.withTx(tx => {
+    const s = tx.db.messagingSecret.id.find(0);
+    if (!s || !secret || secret !== s.webhookSecret) return 'unauthorized';
+    const events: any[] = Array.isArray(ev?.events) ? ev.events : [ev];
+    for (const e of events) {
+      if (e?.type !== 'message.received') continue;
+      const msg = e.message ?? {};
+      if (msg.isFromMe || e.isFromMe) continue;
+      const from = String(msg.sender?.address ?? e.actor?.address ?? e.from ?? '');
+      const text = String(msg.content?.text ?? msg.text ?? e.text ?? '');
+      if (!text.trim()) continue;
+      // Only the owner's own phone can control the crew.
+      if (digits(from).slice(-10) !== digits(s.phone).slice(-10)) continue;
+      handleInboundText(tx, text);
+    }
+    return 'ok';
+  });
+  return new SyncResponse(result, { status: result === 'unauthorized' ? 401 : 200 });
+});
+
+export const httpHealth = spacetimedb.httpHandler(() => new SyncResponse('ok', { status: 200 }));
+export const routes = spacetimedb.httpRouter(new Router().post('/photon', photonWebhook).get('/health', httpHealth));

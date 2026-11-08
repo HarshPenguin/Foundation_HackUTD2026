@@ -99,6 +99,9 @@ export function subscribeAll(conn: Conn): Promise<void> {
     'onboarding',
     'worker_secret',
     'repo',
+    'messaging',
+    'text_message',
+    'worker_messaging',
   ];
   return new Promise((resolve, reject) => {
     conn

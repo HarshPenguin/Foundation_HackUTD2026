@@ -41,10 +41,12 @@ import ClaudeCodePreflightReducer from "./claude_code_preflight_reducer";
 import CommitSpendReducer from "./commit_spend_reducer";
 import CompleteOnboardingReducer from "./complete_onboarding_reducer";
 import CompleteTaskReducer from "./complete_task_reducer";
+import ConfigureMessagingReducer from "./configure_messaging_reducer";
 import ConfigureProviderReducer from "./configure_provider_reducer";
 import ConnectIntegrationReducer from "./connect_integration_reducer";
 import ConnectRepoReducer from "./connect_repo_reducer";
 import CreateTaskReducer from "./create_task_reducer";
+import DisableMessagingReducer from "./disable_messaging_reducer";
 import DisconnectIntegrationReducer from "./disconnect_integration_reducer";
 import DisconnectRepoReducer from "./disconnect_repo_reducer";
 import DismissNotificationReducer from "./dismiss_notification_reducer";
@@ -53,6 +55,7 @@ import FireAndReplaceReducer from "./fire_and_replace_reducer";
 import LockSpendingReducer from "./lock_spending_reducer";
 import LogActivityReducer from "./log_activity_reducer";
 import MarkProviderStoppedReducer from "./mark_provider_stopped_reducer";
+import MarkTextSentReducer from "./mark_text_sent_reducer";
 import RecordBlockedPromptReducer from "./record_blocked_prompt_reducer";
 import RegisterWorkerReducer from "./register_worker_reducer";
 import ReleaseOwnerReducer from "./release_owner_reducer";
@@ -62,6 +65,7 @@ import ReserveBudgetReducer from "./reserve_budget_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
 import ResolveSwitchOrUpgradeReducer from "./resolve_switch_or_upgrade_reducer";
 import SendChatReducer from "./send_chat_reducer";
+import SendTestTextReducer from "./send_test_text_reducer";
 import SetCadenceReducer from "./set_cadence_reducer";
 import SetCommPrefsReducer from "./set_comm_prefs_reducer";
 import SetFallbackChainReducer from "./set_fallback_chain_reducer";
@@ -90,8 +94,10 @@ import EmployeeRow from "./employee_table";
 import ExternalSessionRow from "./external_session_table";
 import FallbackChainRow from "./fallback_chain_table";
 import IntegrationRow from "./integration_table";
+import MessagingRow from "./messaging_table";
 import NotificationRow from "./notification_table";
 import OnboardingRow from "./onboarding_table";
+import OwnerWebhookRow from "./owner_webhook_table";
 import ProjectRow from "./project_table";
 import ProviderRow from "./provider_table";
 import ProviderConfigRow from "./provider_config_table";
@@ -102,7 +108,9 @@ import RunRow from "./run_table";
 import SettingsRow from "./settings_table";
 import SpendEventRow from "./spend_event_table";
 import TaskRow from "./task_table";
+import TextMessageRow from "./text_message_table";
 import WakeEventRow from "./wake_event_table";
+import WorkerMessagingRow from "./worker_messaging_table";
 import WorkerSecretRow from "./worker_secret_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -189,6 +197,17 @@ const tablesSchema = __schema({
       { name: 'integration_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, IntegrationRow),
+  messaging: __table({
+    name: 'messaging',
+    indexes: [
+      { accessor: 'id', name: 'messaging_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'messaging_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, MessagingRow),
   notification: __table({
     name: 'notification',
     indexes: [
@@ -324,6 +343,17 @@ const tablesSchema = __schema({
       { name: 'task_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, TaskRow),
+  textMessage: __table({
+    name: 'text_message',
+    indexes: [
+      { accessor: 'id', name: 'text_message_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'text_message_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, TextMessageRow),
   wakeEvent: __table({
     name: 'wake_event',
     indexes: [
@@ -335,6 +365,20 @@ const tablesSchema = __schema({
       { name: 'wake_event_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, WakeEventRow),
+  ownerWebhook: __table({
+    name: 'owner_webhook',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, OwnerWebhookRow),
+  workerMessaging: __table({
+    name: 'worker_messaging',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, WorkerMessagingRow),
   workerSecret: __table({
     name: 'worker_secret',
     indexes: [
@@ -353,10 +397,12 @@ const reducersSchema = __reducers(
   __reducerSchema("commit_spend", CommitSpendReducer),
   __reducerSchema("complete_onboarding", CompleteOnboardingReducer),
   __reducerSchema("complete_task", CompleteTaskReducer),
+  __reducerSchema("configure_messaging", ConfigureMessagingReducer),
   __reducerSchema("configure_provider", ConfigureProviderReducer),
   __reducerSchema("connect_integration", ConnectIntegrationReducer),
   __reducerSchema("connect_repo", ConnectRepoReducer),
   __reducerSchema("create_task", CreateTaskReducer),
+  __reducerSchema("disable_messaging", DisableMessagingReducer),
   __reducerSchema("disconnect_integration", DisconnectIntegrationReducer),
   __reducerSchema("disconnect_repo", DisconnectRepoReducer),
   __reducerSchema("dismiss_notification", DismissNotificationReducer),
@@ -365,6 +411,7 @@ const reducersSchema = __reducers(
   __reducerSchema("lock_spending", LockSpendingReducer),
   __reducerSchema("log_activity", LogActivityReducer),
   __reducerSchema("mark_provider_stopped", MarkProviderStoppedReducer),
+  __reducerSchema("mark_text_sent", MarkTextSentReducer),
   __reducerSchema("record_blocked_prompt", RecordBlockedPromptReducer),
   __reducerSchema("register_worker", RegisterWorkerReducer),
   __reducerSchema("release_owner", ReleaseOwnerReducer),
@@ -374,6 +421,7 @@ const reducersSchema = __reducers(
   __reducerSchema("reset_demo", ResetDemoReducer),
   __reducerSchema("resolve_switch_or_upgrade", ResolveSwitchOrUpgradeReducer),
   __reducerSchema("send_chat", SendChatReducer),
+  __reducerSchema("send_test_text", SendTestTextReducer),
   __reducerSchema("set_cadence", SetCadenceReducer),
   __reducerSchema("set_comm_prefs", SetCommPrefsReducer),
   __reducerSchema("set_fallback_chain", SetFallbackChainReducer),

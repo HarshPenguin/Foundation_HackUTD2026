@@ -394,6 +394,49 @@ export const repo = table(
   }
 );
 
+// ---- Texts to the owner's phone (Photon iMessage/SMS).
+export const messaging = table(
+  { name: 'messaging', public: true },
+  {
+    id: t.u32().primaryKey(),
+    provider: t.string(), // photon
+    address: t.string(), // Photon HTTP middleware address
+    server: t.string(), // optional dedicated instance id
+    hasToken: t.bool(),
+    phoneLast4: t.string(),
+    enabled: t.bool(),
+    lastSentAt: t.option(t.timestamp()),
+    lastInboundAt: t.option(t.timestamp()),
+    lastError: t.string(),
+    updatedAt: t.timestamp(),
+  }
+);
+
+// Private: Photon token, the owner's phone number, and the webhook secret.
+export const messagingSecret = table(
+  { name: 'messaging_secret' },
+  {
+    id: t.u32().primaryKey(),
+    token: t.string(),
+    phone: t.string(),
+    webhookSecret: t.string(),
+  }
+);
+
+export const textMessage = table(
+  { name: 'text_message', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    direction: t.string(), // out | in
+    kind: t.string(), // update | switch | halt | audit | test | reply | command | chat
+    body: t.string(),
+    status: t.string(), // queued | sent | failed | received
+    error: t.string(),
+    createdAt: t.timestamp(),
+    sentAt: t.option(t.timestamp()),
+  }
+);
+
 const spacetimedb = schema({
   authConfig,
   settings,
@@ -423,5 +466,8 @@ const spacetimedb = schema({
   wakeTimer,
   wakeEvent,
   repo,
+  messaging,
+  messagingSecret,
+  textMessage,
 });
 export default spacetimedb;

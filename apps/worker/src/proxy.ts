@@ -5,8 +5,15 @@ import { EnvHttpProxyAgent, fetch as undiciFetch, setGlobalDispatcher, WebSocket
 if (process.env.HTTPS_PROXY || process.env.https_proxy) {
   const dispatcher = new EnvHttpProxyAgent();
   setGlobalDispatcher(dispatcher);
-  (globalThis as { fetch: unknown }).fetch = ((input: unknown, init?: Record<string, unknown>) =>
-    undiciFetch(input as never, { ...(init ?? {}), dispatcher } as never)) as unknown;
+  const NativeRequest = globalThis.Request;
+  (globalThis as { fetch: unknown }).fetch = (async (input: unknown, init?: Record<string, unknown>) => {
+    // SDKs often pass a built-in Request object, which undici's fetch can't read: unpack it.
+    if (NativeRequest && input instanceof NativeRequest) {
+      const body = input.method === 'GET' || input.method === 'HEAD' ? undefined : await input.arrayBuffer();
+      return undiciFetch(input.url, { method: input.method, headers: Object.fromEntries(input.headers as unknown as Iterable<[string, string]>), body, signal: input.signal, ...(init ?? {}), dispatcher } as never);
+    }
+    return undiciFetch(input as never, { ...(init ?? {}), dispatcher } as never);
+  }) as unknown;
   class ProxiedWebSocket extends UndiciWebSocket {
     constructor(url: string | URL, protocols?: string | string[]) {
       super(url, { protocols, dispatcher } as never);
