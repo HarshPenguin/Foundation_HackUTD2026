@@ -3,11 +3,26 @@ import { env } from '../env';
 import { AnthropicProvider } from './anthropic';
 import { OpenAICompatProvider } from './openaiCompat';
 import { SimulatedProvider } from './simulated';
-import type { LlmProvider } from './types';
+import { ProviderError, type LlmProvider } from './types';
 
 export { ProviderError, type LlmProvider } from './types';
 
 const cache = new Map<string, LlmProvider>();
+
+/** Maritime LLM is not enabled on this machine: fails like an out-of-credits account so the Purser switches. */
+class NoCreditsProvider implements LlmProvider {
+  isSimulated = false;
+  constructor(
+    public name: string,
+    public model: string
+  ) {}
+  estimateTokens(prompt: string) {
+    return Math.ceil(prompt.length / 4);
+  }
+  async complete(): Promise<never> {
+    throw new ProviderError('Maritime LLM is not enabled for this crew (no AI credits)', 402, 'budget_exhausted');
+  }
+}
 
 export interface ProviderSetup {
   config?: ProviderConfig;
@@ -33,6 +48,8 @@ export function adapterFor(p: Provider, setup: ProviderSetup = {}): LlmProvider 
   else if (kind === 'anthropic') a = new AnthropicProvider(p.name, p.model, key, cfg?.baseUrl || undefined);
   else if (kind === 'openai_compatible') a = new OpenAICompatProvider(p.name, p.model, cfg?.baseUrl ?? '', key);
   // Maritime: the agent's injected OPENAI_API_KEY/OPENAI_BASE_URL (or a saved key, if the owner gave one).
+  // Without either, Maritime LLM is off for this crew (no AI credits), so report that as a credit stop.
+  else if (!key && !env.llmKey) a = new NoCreditsProvider(p.name, p.model);
   else a = new OpenAICompatProvider(p.name, p.model, cfg?.baseUrl || env.llmBaseUrl, key || env.llmKey);
   cache.set(cacheKey, a);
   return a;
