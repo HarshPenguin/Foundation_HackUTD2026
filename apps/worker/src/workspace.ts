@@ -121,3 +121,18 @@ export async function listFiles(): Promise<string[]> {
   await ensureRepo();
   return (await git(['ls-files'])).trim().split('\n').filter(Boolean);
 }
+
+/** The owner's own repo: a shallow clone in the crew's persistent workspace. Returns its folder and commit. */
+export async function cloneOwnerRepo(url: string): Promise<{ dir: string; sha: string }> {
+  const slug = url.replace(/\.git$/, '').split('/').slice(-2).join('__').replace(/[^A-Za-z0-9_.-]/g, '_');
+  const dir = join(env.workspaceDir, 'repos', slug);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dirname(dir), { recursive: true });
+  await run('git', ['clone', '--depth', '1', '--single-branch', url, dir], {
+    timeout: 180_000,
+    maxBuffer: 16 * 1024 * 1024,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+  });
+  const sha = (await git(['rev-parse', 'HEAD'], dir)).trim();
+  return { dir, sha };
+}

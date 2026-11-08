@@ -49,11 +49,20 @@ export function applyChains(ctx: Ctx, chains: Array<{ taskType: string; provider
 /** After a demo reset: re-apply the owner's real providers, chains and app details. */
 export function reapplyOwnerSetup(ctx: Ctx) {
   for (const cfg of [...ctx.db.providerConfig.iter()]) applyProviderConfig(ctx, cfg.name);
+  const r = ctx.db.repo.id.find(0);
+  const proj0 = [...ctx.db.project.iter()][0];
+  if (r && r.status === 'ready' && proj0) {
+    ctx.db.project.id.update({ ...proj0, name: r.name, repoPath: r.url, stackSummary: r.languages, healthScore: r.healthScore });
+    if (r.auditMd) {
+      const auditor = [...ctx.db.employee.iter()].find(e => e.role === 'auditor' && e.status !== 'fired');
+      ctx.db.report.insert({ id: 0n, kind: 'audit', authorEmployeeId: auditor?.id ?? 0n, title: `How ${r.name} works`, bodyMd: r.auditMd, period: 'on connect', at: ctx.timestamp });
+    }
+  }
   const ob = ctx.db.onboarding.id.find(0);
   if (!ob || !ob.completed) return;
   applyChains(ctx, ob.chains);
   const proj = [...ctx.db.project.iter()][0];
-  if (proj && ob.appName) {
+  if (proj && ob.appName && !(r && r.status === 'ready')) {
     ctx.db.project.id.update({ ...proj, name: ob.appName, stackSummary: ob.stack || proj.stackSummary });
   }
 }

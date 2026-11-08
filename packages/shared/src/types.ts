@@ -54,7 +54,7 @@ export interface ManagerPlan {
 
 export type DirectiveIntent = 'question' | 'start_maintenance' | 'billing' | 'status' | 'other';
 
-/** JSON the Translator attaches to its reply (chat_message.directiveJson). */
+/** JSON the Chatbot attaches to its reply (chat_message.directiveJson). */
 export interface Directive {
   intent: DirectiveIntent;
   summary: string;

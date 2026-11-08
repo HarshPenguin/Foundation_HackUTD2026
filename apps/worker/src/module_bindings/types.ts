@@ -199,6 +199,23 @@ export const ProviderSecret = __t.object("ProviderSecret", {
 });
 export type ProviderSecret = __Infer<typeof ProviderSecret>;
 
+export const Repo = __t.object("Repo", {
+  id: __t.u32(),
+  url: __t.string(),
+  name: __t.string(),
+  status: __t.string(),
+  message: __t.string(),
+  commitSha: __t.string(),
+  fileCount: __t.u32(),
+  languages: __t.string(),
+  findings: __t.u32(),
+  healthScore: __t.u32(),
+  auditMd: __t.string(),
+  scannedAt: __t.option(__t.timestamp()),
+  updatedAt: __t.timestamp(),
+});
+export type Repo = __Infer<typeof Repo>;
+
 export const Report = __t.object("Report", {
   id: __t.u64(),
   kind: __t.string(),

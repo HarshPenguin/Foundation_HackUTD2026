@@ -6,7 +6,7 @@ Already using Claude Code? Keep it. Foundation works around it:
 |---|---|
 | **Spend tracking** | After every Claude Code reply, a `Stop` hook reports the session's token usage. Foundation prices it (current Claude list prices, including cache reads and writes) and charges it to the **Claude Code** wallet and your weekly budget. Reports are cumulative per session, so a repeated report never double-charges. |
 | **$0 hard stop** | Before every prompt, a `UserPromptSubmit` hook asks Foundation. The decision is made inside a SpacetimeDB reducer, using the same rule as the crew (`balance − reserved − estimate ≥ threshold`, and the weekly limit while spending is locked). If the budget says stop, Claude Code blocks the prompt and tells you why. |
-| **Crew tools (MCP)** | `foundation_status`, `foundation_app_audit` (the Auditor's map of your legacy app), `foundation_recent_changes`, `foundation_ask_translator`, `foundation_request_work` (hand work to the crew). |
+| **Crew tools (MCP)** | `foundation_status`, `foundation_app_audit` (the Auditor's map of your legacy app), `foundation_recent_changes`, `foundation_ask_chatbot`, `foundation_request_work` (hand work to the crew). |
 
 ## Setup (about 2 minutes)
 

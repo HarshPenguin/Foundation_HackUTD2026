@@ -102,8 +102,8 @@ function send(res: ServerResponse, code: number, body: unknown) {
   res.end(JSON.stringify(body, (_k, v) => (typeof v === 'bigint' ? v.toString() : v)));
 }
 
-/** POST /chat: forwards the message to the Translator and waits up to 25 s for its reply. */
-async function chatViaTranslator(message: string): Promise<string> {
+/** POST /chat: forwards the message to the Chatbot and waits up to 25 s for its reply. */
+async function chatViaChatbot(message: string): Promise<string> {
   if (!conn) return 'The crew is starting up. Try again in a moment.';
   const before = [...conn.db.chatMessage.iter()].reduce((m, r) => (r.id > m ? r.id : m), 0n);
   await conn.reducers.sendChat({ text: message });
@@ -147,7 +147,7 @@ function startHttp() {
           return send(res, 200, { response: 'Foundation crew is awake.' });
         }
         if (!message.trim()) return send(res, 400, { response: 'Send {"message": "..."}' });
-        return send(res, 200, { response: await chatViaTranslator(message) });
+        return send(res, 200, { response: await chatViaChatbot(message) });
       }
       send(res, 404, { error: 'not found' });
     } catch (err) {

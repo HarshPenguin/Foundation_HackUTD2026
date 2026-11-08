@@ -13,6 +13,8 @@ import { pause } from '../env';
 import { parseJson } from '../db';
 import { think } from '../llm';
 import { fixedKeys, plural, type RoleCtx, type RoleResult } from './common';
+import { connectedRepo } from '../repoWork';
+import { manageRepo } from './repoRoles';
 
 /** The owner's most recent "please fix/upgrade X" request from chat, if it came in the last 15 minutes. */
 function recentOwnerRequest(c: RoleCtx): string | undefined {
@@ -29,6 +31,8 @@ function recentOwnerRequest(c: RoleCtx): string | undefined {
 
 export async function manage(c: RoleCtx): Promise<RoleResult> {
   const { db, task, employee } = c;
+  const repo = connectedRepo(db);
+  if (repo) return manageRepo(c, repo.url, repo.name);
   await db.log(task.runId, employee.id, 'plan', `${employee.displayName} is reading the latest audit and update plan`);
 
   const fixed = fixedKeys(db);

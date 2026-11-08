@@ -6,6 +6,8 @@ import { think } from '../llm';
 import { phpLint, runFixCheck, scratchFile } from '../checks';
 import { checkoutForReview, readMainFile } from '../workspace';
 import { testerInput, type RoleCtx, type RoleResult } from './common';
+import { repoFixOf } from '../repoWork';
+import { testRepo } from './repoRoles';
 
 export async function test(c: RoleCtx): Promise<RoleResult> {
   const { db, task, employee } = c;
@@ -14,6 +16,8 @@ export async function test(c: RoleCtx): Promise<RoleResult> {
     await db.log(task.runId, employee.id, 'review', 'No new changes are waiting for review');
     return { status: 'done', output: 'No new changes were waiting for review.' };
   }
+  const rf = repoFixOf(task.input);
+  if (rf) return testRepo(c, rf);
   const issue = KNOWN_ISSUES[input.fixKey];
   const dev = db.task(BigInt(input.devTaskId));
   const devName = dev ? db.name(dev.employeeId) : 'the Developer';

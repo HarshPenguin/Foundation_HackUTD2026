@@ -5,6 +5,8 @@ import { CANNED_FIXES, FIX_SUMMARIES } from '../fixes';
 import { phpLint, runFixCheck, scratchFile } from '../checks';
 import { commitFixOnBranch, readMainFile } from '../workspace';
 import { devInput, fixedKeys, fixKeyOf, stripFences, type RoleCtx, type RoleResult } from './common';
+import { repoFixOf } from '../repoWork';
+import { developRepo } from './repoRoles';
 
 function pickKey(c: RoleCtx): FixKey {
   const fromTask = fixKeyOf(c.task);
@@ -18,6 +20,8 @@ function pickKey(c: RoleCtx): FixKey {
 
 export async function develop(c: RoleCtx): Promise<RoleResult> {
   const { db, task, employee } = c;
+  const rf = repoFixOf(task.input);
+  if (rf) return developRepo(c, rf);
   const input = devInput(task);
   const key = input?.fixKey ?? pickKey(c);
   const issue = KNOWN_ISSUES[key];

@@ -11,6 +11,8 @@ import { reviewPerformance } from './roles/reviewer';
 import { communicate } from './roles/communicator';
 import { translate, translateBlocked } from './roles/translator';
 import { hasReportSpec, writeRoleReport } from './roles/reports';
+import { audit } from './roles/auditor';
+import { connectedRepo, repoFixOf } from './repoWork';
 
 type Handler = (c: RoleCtx) => Promise<RoleResult>;
 
@@ -28,6 +30,8 @@ function handlerFor(role: string): Handler {
       return reviewPerformance;
     case 'communicator':
       return communicate;
+    case 'auditor':
+      return audit;
     default:
       return hasReportSpec(role) ? writeRoleReport : async () => ({ status: 'done', output: 'Nothing to do.' });
   }
@@ -257,10 +261,17 @@ export class Pipeline {
 
     // Everything is terminal: close the run.
     const shipped = code.filter(t => isApproved(db, t));
-    const keys = new Set(code.map(fixKeyOf));
+    const keys = new Set(code.map(t => fixKeyOf(t) ?? repoFixOf(t.input)?.title ?? t.title));
     const fresh = db.run(run.id) ?? run;
+    const repoName = connectedRepo(db)?.name ?? 'your repo';
+    const proposals = code.filter(t => t.status === 'done' && !t.branch && repoFixOf(t.input));
+    const repoShipped = shipped.filter(t => repoFixOf(t.input));
     const summary =
-      code.length === 0
+      repoShipped.length > 0
+        ? `Fixed ${repoShipped.length} of ${plural(keys.size, 'planned risk')} in ${repoName}, each on its own branch and checked by the Tester. Spent ${formatUsd(fresh.totalMicros)}.`
+        : proposals.length > 0
+        ? `Wrote ${plural(proposals.length, 'fix plan')} for ${repoName}. Connect an AI key in onboarding and the Developers will apply them on branches. Spent ${formatUsd(fresh.totalMicros)}.`
+        : code.length === 0
         ? 'Nothing urgent was left in the update plan.'
         : `Fixed ${shipped.length} of ${plural(keys.size, 'planned issue')}${
             shipped.length ? `: ${[...new Set(shipped.map(fixKeyOf))].map(k => (k ? KNOWN_ISSUES[k].short : 'a fix')).join(', ')}` : ''
@@ -288,6 +299,14 @@ export class Pipeline {
       if (testerTasksFor(db, dev.id).length) continue;
       const tester = db.byRole('tester');
       if (!tester) continue;
+      const rf = repoFixOf(dev.input);
+      if (rf && dev.branch) {
+        const rin = { devTaskId: dev.id.toString(), branch: dev.branch, file: rf.file, repoFix: rf };
+        await pause(600);
+        await db.r.createTask({ runId: run.id, employeeId: tester.id, taskType: 'review', title: `Review ${dev.branch}`, input: JSON.stringify(rin) });
+        await db.log(run.id, tester.id, 'review', `${tester.displayName} picked up ${dev.branch} from ${db.name(dev.employeeId)}`);
+        return true;
+      }
       const key = fixKeyOf(dev);
       if (!key || !dev.branch) continue;
       const input: TesterTaskInput = { devTaskId: dev.id.toString(), branch: dev.branch, file: KNOWN_ISSUES[key].file, fixKey: key };

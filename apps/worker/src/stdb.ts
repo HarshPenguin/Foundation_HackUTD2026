@@ -98,6 +98,7 @@ export function subscribeAll(conn: Conn): Promise<void> {
     'provider_config',
     'onboarding',
     'worker_secret',
+    'repo',
   ];
   return new Promise((resolve, reject) => {
     conn

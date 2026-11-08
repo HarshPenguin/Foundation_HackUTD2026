@@ -117,7 +117,7 @@ export function seed(ctx: Ctx) {
   // ---- employees
   type Spec = [role: string, name: string, cadence: string, day: number, hour: number, status?: string];
   const specs: Spec[] = [
-    ['translator', 'Translator', 'on_demand', 0, 12],
+    ['translator', 'Chatbot', 'on_demand', 0, 12],
     ['manager', 'Manager', 'weekly', 3, 12],
     ['auditor', 'Auditor', 'monthly', 1, 9],
     ['researcher', 'Researcher', 'monthly', 1, 8, 'on_review'],
@@ -256,6 +256,6 @@ export function seed(ctx: Ctx) {
   });
   d.chatMessage.insert({
     id: 0n, role: 'translator', directiveJson: '', taskId: undefined, at: ago(6n * DAY),
-    text: "Hi Harsh. I'm your Translator. Ask me anything about MediClaim, your crew, or your spending, in plain English.",
+    text: "Hi Harsh. I'm your Chatbot. Ask me anything about MediClaim, your crew, or your spending, in plain English.",
   });
 }

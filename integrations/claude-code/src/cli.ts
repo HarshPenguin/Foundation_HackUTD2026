@@ -76,7 +76,7 @@ function install() {
     add('SessionEnd', 'stop');
   });
   console.log(`Installed Foundation into ${project}:`);
-  console.log('  .mcp.json             MCP server "foundation" (status, audit, recent changes, ask the Translator, request work)');
+  console.log('  .mcp.json             MCP server "foundation" (status, audit, recent changes, ask the Chatbot, request work)');
   console.log('  .claude/settings.json hooks: budget check before each prompt, spend report after each reply');
   console.log('Start Claude Code in that folder and approve the "foundation" MCP server when asked.');
 }

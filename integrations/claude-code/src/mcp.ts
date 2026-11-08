@@ -1,5 +1,5 @@
 // Foundation as an MCP server for Claude Code: read the crew's state and findings, ask the
-// Translator, and hand work to the crew. Runs over stdio (`node dist/cli.js mcp`).
+// Chatbot, and hand work to the crew. Runs over stdio (`node dist/cli.js mcp`).
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -110,10 +110,10 @@ export async function runMcp() {
   );
 
   server.registerTool(
-    'foundation_ask_translator',
+    'foundation_ask_chatbot',
     {
       description:
-        "Ask Foundation's Translator (the owner's plain-English contact for the AI maintenance crew) a question about the app, the crew, or spending. Waits up to 45 seconds for the reply.",
+        "Ask Foundation's Chatbot (the owner's plain-English contact for the AI maintenance crew) a question about the app, the crew, or spending. Waits up to 45 seconds for the reply.",
       inputSchema: { question: z.string().min(1).max(2000) },
     },
     async ({ question }) => {
@@ -133,7 +133,7 @@ export async function runMcp() {
           const reply = taskId != null && msgs.find(m => m.role === 'translator' && num(m.task_id) === taskId);
           if (reply) return text(String(reply.text));
         }
-        return text('The Translator has not answered yet (the crew may be offline). Try foundation_status.');
+        return text('The Chatbot has not answered yet (the crew may be offline). Try foundation_status.');
       } catch (e) {
         return fail(e instanceof ReducerError ? e.message : `Could not reach Foundation: ${(e as Error).message}`);
       }

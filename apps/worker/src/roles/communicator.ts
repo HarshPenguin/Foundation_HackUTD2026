@@ -3,6 +3,7 @@ import { pause } from '../env';
 import { parseJson } from '../db';
 import { think } from '../llm';
 import { fixedKeys, fixKeyOf, isApproved, plural, type RoleCtx, type RoleResult } from './common';
+import { connectedRepo } from '../repoWork';
 import { scopeTasks } from './reviewer';
 
 export function channelPhrase(channel: string | undefined): string {
@@ -56,7 +57,7 @@ export async function communicate(c: RoleCtx): Promise<RoleResult> {
       }.${b?.spendLocked ? ' The spending lock is on, so nothing can go over that.' : ''}`
     );
     for (const s of switches.slice(0, 2)) lines.push(`- ${s.message.replace(/\.?$/, '.')} Your crew kept working without asking you.`);
-    if (open.length) lines.push('', `**Still open:** ${open.map(k => KNOWN_ISSUES[k].plain.toLowerCase()).join('; ')}.`);
+    if (open.length && !connectedRepo(db)) lines.push('', `**Still open:** ${open.map(k => KNOWN_ISSUES[k].plain.toLowerCase()).join('; ')}.`);
     if (onReview.length) lines.push('', `**People:** ${onReview.map(e => e.displayName).join(', ')} ${onReview.length === 1 ? 'is' : 'are'} on review.`);
     return lines.join('\n');
   };

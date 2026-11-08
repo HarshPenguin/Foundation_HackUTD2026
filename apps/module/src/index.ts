@@ -656,7 +656,7 @@ export const sendChat = spacetimedb.reducer({ text: t.string() }, (ctx, { text }
   const tr = activeByRole(ctx, 'translator');
   if (!tr) throw new SenderError('no translator');
   let r = [...ctx.db.run.iter()].find(x => x.trigger === 'chat' && x.status === 'running');
-  if (!r) r = ctx.db.run.insert({ id: 0n, trigger: 'chat', status: 'running', summary: 'Chat with the Translator', startedAt: ctx.timestamp, endedAt: undefined, totalMicros: 0n });
+  if (!r) r = ctx.db.run.insert({ id: 0n, trigger: 'chat', status: 'running', summary: 'Chat with the Chatbot', startedAt: ctx.timestamp, endedAt: undefined, totalMicros: 0n });
   const tk = insertTask(ctx, r.id, tr.id, 'chat', 'Answer the owner', trimmed.slice(0, 2000));
   ctx.db.chatMessage.insert({ id: 0n, role: 'user', text: trimmed.slice(0, 2000), directiveJson: '', taskId: tk.id, at: ctx.timestamp });
 });
@@ -749,7 +749,7 @@ export const writeReview = spacetimedb.reducer(
 export const fireAndReplace = spacetimedb.reducer({ employeeId: t.u64(), reason: t.string() }, (ctx, { employeeId, reason }) => {
   const e = ctx.db.employee.id.find(employeeId);
   if (!e) throw new SenderError('employee missing');
-  if (e.role === 'translator') throw new SenderError("The Translator can't be fired");
+  if (e.role === 'translator') throw new SenderError("The Chatbot can't be fired");
   if (e.status === 'fired') throw new SenderError('already fired');
   ctx.db.employee.id.update({ ...e, status: 'fired', nextRunAt: undefined });
   for (const r of [...ctx.db.cadenceTimer.iter()]) if (r.employeeId === e.id) ctx.db.cadenceTimer.scheduledId.delete(r.scheduledId);
@@ -1122,6 +1122,8 @@ export const completeOnboarding = spacetimedb.reducer(
     };
     if (ctx.db.onboarding.id.find(0)) ctx.db.onboarding.id.update(row);
     else ctx.db.onboarding.insert(row);
+    const repoNow = ctx.db.repo.id.find(0);
+    const connectNow = row.repoUrl && REPO_URL.test(row.repoUrl.replace(/\/$/, '')) && (!repoNow || repoNow.url !== row.repoUrl.replace(/\/$/, ''));
 
     const proj = [...ctx.db.project.iter()][0];
     if (proj) ctx.db.project.id.update({ ...proj, name: row.appName, repoPath: row.repoUrl || proj.repoPath, stackSummary: row.stack || proj.stackSummary });
@@ -1135,6 +1137,7 @@ export const completeOnboarding = spacetimedb.reducer(
     applyChains(ctx, a.chains);
     const m = activeByRole(ctx, 'manager');
     log(ctx, 0n, m?.id ?? 0n, 'plan', `Onboarding complete. The crew is set up for ${row.appName}`);
+    if (connectNow) connectRepoInner(ctx, row.repoUrl);
     if (a.startFirstRun && m && ![...ctx.db.run.iter()].some(r => r.status === 'running' && r.trigger !== 'chat')) {
       const r = createRun(ctx, 'manual', m.id, `First maintenance run on ${row.appName}`, `Priorities: ${row.priorities.join(', ')}`);
       log(ctx, r.id, m.id, 'plan', `${m.displayName} started the first run on ${row.appName}`);
@@ -1150,3 +1153,72 @@ export const workerSecret = spacetimedb.view({ name: 'worker_secret', public: tr
   if (!a || !a.workerIdentity || !a.workerIdentity.isEqual(ctx.sender)) return [];
   return [...ctx.db.providerSecret.iter()].map(s => ({ name: s.name, apiKey: s.apiKey }));
 });
+
+// ------------------------------------------------------------- the owner's codebase
+
+const REPO_URL = /^https:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?(\.git)?\/?$/;
+
+function connectRepoInner(ctx: Ctx, rawUrl: string) {
+  const url = rawUrl.trim().replace(/\/$/, '');
+  if (!REPO_URL.test(url)) throw new SenderError('Paste a public GitHub, GitLab or Bitbucket URL, like https://github.com/you/app');
+  const name = url.replace(/\.git$/, '').split('/').pop() ?? 'app';
+  const row = {
+    id: 0, url, name, status: 'queued', message: 'Waiting for the Auditor', commitSha: '', fileCount: 0,
+    languages: '', findings: 0, healthScore: 0, auditMd: '', scannedAt: undefined, updatedAt: ctx.timestamp,
+  };
+  if (ctx.db.repo.id.find(0)) ctx.db.repo.id.update(row);
+  else ctx.db.repo.insert(row);
+  const proj = [...ctx.db.project.iter()][0];
+  if (proj) ctx.db.project.id.update({ ...proj, name, repoPath: url, stackSummary: 'The Auditor is reading your code' });
+  const auditor = activeByRole(ctx, 'auditor');
+  if (!auditor) throw new SenderError('No Auditor on the crew');
+  const r = createRun(ctx, 'manual', auditor.id, `Clone and audit ${name}`, JSON.stringify({ repoUrl: url }));
+  log(ctx, r.id, auditor.id, 'plan', `${auditor.displayName} is cloning ${name} to map how it works`);
+}
+
+export const connectRepo = spacetimedb.reducer({ url: t.string() }, (ctx, { url }) => {
+  requireOwner(ctx);
+  connectRepoInner(ctx, url);
+});
+
+export const disconnectRepo = spacetimedb.reducer(ctx => {
+  requireOwner(ctx);
+  if (ctx.db.repo.id.find(0)) ctx.db.repo.id.delete(0);
+  log(ctx, 0n, 0n, 'info', 'Disconnected your repo. The crew is back on the MediClaim demo');
+});
+
+export const updateRepo = spacetimedb.reducer(
+  {
+    status: t.string(),
+    message: t.string(),
+    commitSha: t.string(),
+    fileCount: t.u32(),
+    languages: t.string(),
+    findings: t.u32(),
+    healthScore: t.u32(),
+    auditMd: t.string(),
+  },
+  (ctx, a) => {
+    requireWorker(ctx);
+    const r = ctx.db.repo.id.find(0);
+    if (!r) throw new SenderError('no repo connected');
+    const ready = a.status === 'ready';
+    ctx.db.repo.id.update({
+      ...r,
+      status: a.status,
+      message: a.message.slice(0, 300),
+      commitSha: a.commitSha || r.commitSha,
+      fileCount: a.fileCount || r.fileCount,
+      languages: a.languages || r.languages,
+      findings: ready ? a.findings : r.findings,
+      healthScore: ready ? a.healthScore : r.healthScore,
+      auditMd: a.auditMd ? a.auditMd.slice(0, 20000) : r.auditMd,
+      scannedAt: ready ? ctx.timestamp : r.scannedAt,
+      updatedAt: ctx.timestamp,
+    });
+    if (ready) {
+      const proj = [...ctx.db.project.iter()][0];
+      if (proj) ctx.db.project.id.update({ ...proj, name: r.name, repoPath: r.url, stackSummary: a.languages || proj.stackSummary, healthScore: a.healthScore, lastAuditAt: ctx.timestamp });
+    }
+  }
+);

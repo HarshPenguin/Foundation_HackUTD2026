@@ -374,6 +374,26 @@ export const wakeEvent = table(
   }
 );
 
+// The owner's own codebase. The Auditor clones it on the crew's machine and scans it.
+export const repo = table(
+  { name: 'repo', public: true },
+  {
+    id: t.u32().primaryKey(),
+    url: t.string(),
+    name: t.string(),
+    status: t.string(), // queued | cloning | scanning | ready | failed
+    message: t.string(),
+    commitSha: t.string(),
+    fileCount: t.u32(),
+    languages: t.string(),
+    findings: t.u32(),
+    healthScore: t.u32(),
+    auditMd: t.string(), // last audit, re-published after a demo reset
+    scannedAt: t.option(t.timestamp()),
+    updatedAt: t.timestamp(),
+  }
+);
+
 const spacetimedb = schema({
   authConfig,
   settings,
@@ -402,5 +422,6 @@ const spacetimedb = schema({
   wakeConfig,
   wakeTimer,
   wakeEvent,
+  repo,
 });
 export default spacetimedb;

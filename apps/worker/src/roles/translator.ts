@@ -3,7 +3,7 @@ import { parseJson, type Db } from '../db';
 import { think } from '../llm';
 import { fixedKeys, fixKeyOf, isApproved, weekAgoMicros, type RoleCtx, type RoleResult } from './common';
 
-/** Compact, plain-text snapshot of the database for the Translator's prompt. */
+/** Compact, plain-text snapshot of the database for the Chatbot's prompt. */
 export function snapshot(db: Db): string {
   const b = db.budget();
   const s = db.settings();
