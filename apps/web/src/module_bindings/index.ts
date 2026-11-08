@@ -39,7 +39,9 @@ import ClaimOwnerReducer from "./claim_owner_reducer";
 import ClaimTaskReducer from "./claim_task_reducer";
 import ClaudeCodePreflightReducer from "./claude_code_preflight_reducer";
 import CommitSpendReducer from "./commit_spend_reducer";
+import CompleteOnboardingReducer from "./complete_onboarding_reducer";
 import CompleteTaskReducer from "./complete_task_reducer";
+import ConfigureProviderReducer from "./configure_provider_reducer";
 import ConnectIntegrationReducer from "./connect_integration_reducer";
 import CreateTaskReducer from "./create_task_reducer";
 import DisconnectIntegrationReducer from "./disconnect_integration_reducer";
@@ -52,6 +54,7 @@ import MarkProviderStoppedReducer from "./mark_provider_stopped_reducer";
 import RecordBlockedPromptReducer from "./record_blocked_prompt_reducer";
 import RegisterWorkerReducer from "./register_worker_reducer";
 import ReleaseOwnerReducer from "./release_owner_reducer";
+import RemoveProviderKeyReducer from "./remove_provider_key_reducer";
 import ReportExternalUsageReducer from "./report_external_usage_reducer";
 import ReserveBudgetReducer from "./reserve_budget_reducer";
 import ResetDemoReducer from "./reset_demo_reducer";
@@ -64,6 +67,7 @@ import SetManagerOptimizesReducer from "./set_manager_optimizes_reducer";
 import SetModeReducer from "./set_mode_reducer";
 import SetOwnerPasscodeReducer from "./set_owner_passcode_reducer";
 import SetThresholdReducer from "./set_threshold_reducer";
+import SetWakeHookReducer from "./set_wake_hook_reducer";
 import SetWeeklyBudgetReducer from "./set_weekly_budget_reducer";
 import SetWorkerPairingCodeReducer from "./set_worker_pairing_code_reducer";
 import StartRunReducer from "./start_run_reducer";
@@ -84,14 +88,18 @@ import ExternalSessionRow from "./external_session_table";
 import FallbackChainRow from "./fallback_chain_table";
 import IntegrationRow from "./integration_table";
 import NotificationRow from "./notification_table";
+import OnboardingRow from "./onboarding_table";
 import ProjectRow from "./project_table";
 import ProviderRow from "./provider_table";
+import ProviderConfigRow from "./provider_config_table";
 import ReportRow from "./report_table";
 import ReviewRow from "./review_table";
 import RunRow from "./run_table";
 import SettingsRow from "./settings_table";
 import SpendEventRow from "./spend_event_table";
 import TaskRow from "./task_table";
+import WakeEventRow from "./wake_event_table";
+import WorkerSecretRow from "./worker_secret_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -188,6 +196,17 @@ const tablesSchema = __schema({
       { name: 'notification_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, NotificationRow),
+  onboarding: __table({
+    name: 'onboarding',
+    indexes: [
+      { accessor: 'id', name: 'onboarding_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'onboarding_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, OnboardingRow),
   project: __table({
     name: 'project',
     indexes: [
@@ -210,6 +229,17 @@ const tablesSchema = __schema({
       { name: 'provider_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, ProviderRow),
+  providerConfig: __table({
+    name: 'provider_config',
+    indexes: [
+      { accessor: 'name', name: 'provider_config_name_idx_btree', algorithm: 'btree', columns: [
+        'name',
+      ] },
+    ],
+    constraints: [
+      { name: 'provider_config_name_key', constraint: 'unique', columns: ['name'] },
+    ],
+  }, ProviderConfigRow),
   report: __table({
     name: 'report',
     indexes: [
@@ -279,6 +309,24 @@ const tablesSchema = __schema({
       { name: 'task_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, TaskRow),
+  wakeEvent: __table({
+    name: 'wake_event',
+    indexes: [
+      { accessor: 'id', name: 'wake_event_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'wake_event_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, WakeEventRow),
+  workerSecret: __table({
+    name: 'worker_secret',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, WorkerSecretRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
@@ -288,7 +336,9 @@ const reducersSchema = __reducers(
   __reducerSchema("claim_task", ClaimTaskReducer),
   __reducerSchema("claude_code_preflight", ClaudeCodePreflightReducer),
   __reducerSchema("commit_spend", CommitSpendReducer),
+  __reducerSchema("complete_onboarding", CompleteOnboardingReducer),
   __reducerSchema("complete_task", CompleteTaskReducer),
+  __reducerSchema("configure_provider", ConfigureProviderReducer),
   __reducerSchema("connect_integration", ConnectIntegrationReducer),
   __reducerSchema("create_task", CreateTaskReducer),
   __reducerSchema("disconnect_integration", DisconnectIntegrationReducer),
@@ -301,6 +351,7 @@ const reducersSchema = __reducers(
   __reducerSchema("record_blocked_prompt", RecordBlockedPromptReducer),
   __reducerSchema("register_worker", RegisterWorkerReducer),
   __reducerSchema("release_owner", ReleaseOwnerReducer),
+  __reducerSchema("remove_provider_key", RemoveProviderKeyReducer),
   __reducerSchema("report_external_usage", ReportExternalUsageReducer),
   __reducerSchema("reserve_budget", ReserveBudgetReducer),
   __reducerSchema("reset_demo", ResetDemoReducer),
@@ -313,6 +364,7 @@ const reducersSchema = __reducers(
   __reducerSchema("set_mode", SetModeReducer),
   __reducerSchema("set_owner_passcode", SetOwnerPasscodeReducer),
   __reducerSchema("set_threshold", SetThresholdReducer),
+  __reducerSchema("set_wake_hook", SetWakeHookReducer),
   __reducerSchema("set_weekly_budget", SetWeeklyBudgetReducer),
   __reducerSchema("set_worker_pairing_code", SetWorkerPairingCodeReducer),
   __reducerSchema("start_run", StartRunReducer),

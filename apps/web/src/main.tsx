@@ -11,6 +11,7 @@ import FinancesPage from '@/pages/Finances';
 import DevelopersPage from '@/pages/Developers';
 import CommunicationsPage from '@/pages/Communications';
 import SettingsPage from '@/pages/Settings';
+import OnboardingPage from '@/pages/Onboarding';
 
 function Splash({ children }: { children: React.ReactNode }) {
   return (
@@ -59,6 +60,7 @@ function ConnectionGate() {
   }
   return (
     <Routes>
+      <Route path="onboarding" element={<OnboardingPage />} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="finances" element={<FinancesPage />} />

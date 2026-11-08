@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeftRight,
   ArrowUpCircle,
@@ -181,7 +181,11 @@ function UsageCard() {
   );
 }
 
+const CONFIG_KIND_LABEL: Record<string, string> = { maritime: 'Maritime', openai_compatible: 'OpenAI-compatible', anthropic: 'Anthropic' };
+
 function ProviderCard({ p }: { p: Provider }) {
+  const db = useDb();
+  const cfg = db.providerConfigs.find(c => c.name === p.name);
   const { switchAway, upgrade, noticesFor } = useProviderActions();
   const [busy, setBusy] = useState(false);
   const avail = available(p);
@@ -206,10 +210,21 @@ function ProviderCard({ p }: { p: Provider }) {
           ) : (
             <div className="mt-0.5 font-mono text-xs text-muted">{p.model}</div>
           )}
+          {cfg && (
+            <div className="mt-1 flex flex-wrap items-center gap-x-2.5 text-xs text-muted">
+              <span>{CONFIG_KIND_LABEL[cfg.kind] ?? cfg.kind}</span>
+              <span className="inline-flex items-center gap-1">
+                <KeyRound className="size-3" />
+                {cfg.kind === 'maritime' ? 'Maritime plan credits' : cfg.hasKey ? `Your key ••••${cfg.keyLast4}` : 'No key saved'}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1">
           <ProviderStatus provider={p} />
-          {p.isSimulated ? (
+          {cfg ? (
+            <Badge tone="navy">Real API</Badge>
+          ) : p.isSimulated ? (
             <Badge tone="outline">Simulated</Badge>
           ) : p.name === CLAUDE_CODE_PROVIDER ? (
             <Badge tone="navy">Claude Code</Badge>
@@ -349,9 +364,16 @@ function Wallets() {
         <p className="text-sm text-muted">
           Available = balance − reserved. A provider stops before it would go below its threshold.
         </p>
-        <Button onClick={() => setOpen(true)}>
-          <Plus /> Add API key
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/onboarding?step=keys">
+              <KeyRound /> Connect a real key
+            </Link>
+          </Button>
+          <Button onClick={() => setOpen(true)}>
+            <Plus /> Add API key
+          </Button>
+        </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {db.providers.map(p => (

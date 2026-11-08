@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUp, Code, Lock, LockOpen, Mail, Sparkles, Wallet, ListChecks } from 'lucide-react';
+import { ArrowRight, ArrowUp, Code, Lock, LockOpen, Mail, Sparkles, Wallet, ListChecks, Rocket } from 'lucide-react';
 import { useDb } from '@/lib/stdb';
 import { useCall } from '@/lib/actions';
 import { activeEmployees, available, byRole, currentRun, latestReport, nextCrewRun, weeklyProjection } from '@/lib/domain';
@@ -176,6 +176,25 @@ function Chat() {
   );
 }
 
+function SetupCard() {
+  return (
+    <Link to="/onboarding" className="group mb-6 block">
+      <div className="flex flex-col gap-4 rounded-2xl bg-navy-900 p-5 text-white shadow-lg transition-transform group-hover:-translate-y-0.5 sm:flex-row sm:items-center sm:p-6">
+        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-navy-950">
+          <Rocket className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-lg font-semibold">Set up your crew in 3 minutes</div>
+          <div className="mt-0.5 text-sm text-navy-200">Tell the crew about your app, connect your AI keys, and pick a weekly budget and schedule.</div>
+        </div>
+        <span className="inline-flex items-center gap-1.5 self-start rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-navy-950 sm:self-center">
+          Start setup <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 function GlanceCard({ to, icon, title, children, cta }: { to: string; icon: React.ReactNode; title: string; children: React.ReactNode; cta: string }) {
   return (
     <Link to={to} className="group">
@@ -214,6 +233,7 @@ export default function HomePage() {
 
   return (
     <div className="pb-10">
+      {!db.onboarding?.completed && <SetupCard />}
       <section className="flex flex-col items-center pb-10 pt-6 text-center sm:pt-12">
         <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           {greeting()}, {db.settings?.ownerName ?? 'there'}

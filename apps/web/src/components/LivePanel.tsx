@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeftRight, Play, RotateCcw, Radio, Square } from 'lucide-react';
 import { useDb } from '@/lib/stdb';
+import { useWakingCrew } from '@/lib/wake';
 import { currentRun, lastFinishedRun } from '@/lib/domain';
 import { clockTime, tsDate, usd, ago } from '@/lib/format';
 import { Card, Badge } from './ui/primitives';
@@ -54,6 +55,7 @@ function ActivityRow({ a }: { a: Activity }) {
 
 export function LivePanel({ className }: { className?: string }) {
   const db = useDb();
+  const waking = useWakingCrew();
   const live = currentRun(db);
   const last = lastFinishedRun(db);
   const listRef = useRef<HTMLOListElement>(null);
@@ -143,7 +145,7 @@ export function LivePanel({ className }: { className?: string }) {
             <span className="typing-dot size-1.5 rounded-full bg-navy-400" />
             <span className="typing-dot size-1.5 rounded-full bg-navy-400" />
             <span className="typing-dot size-1.5 rounded-full bg-navy-400" />
-            {db.settings?.workerOnline ? 'Working' : 'Waiting for the crew to come online'}
+            {db.settings?.workerOnline ? 'Working' : waking ? 'Waking your crew on Maritime…' : 'Waiting for the crew to come online'}
           </li>
         )}
       </ol>

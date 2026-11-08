@@ -10,14 +10,17 @@ import type {
   FallbackChain,
   Integration,
   Notification,
+  Onboarding,
   Project,
   Provider,
+  ProviderConfig,
   Report,
   Review,
   Run,
   Settings,
   SpendEvent,
   Task,
+  WakeEvent,
 } from '@/module_bindings/types';
 
 export const STDB_URI: string = import.meta.env.VITE_STDB_URI || 'ws://127.0.0.1:3000';
@@ -75,6 +78,10 @@ export interface Db {
   reviews: readonly Review[];
   integrations: readonly Integration[];
   externalSessions: readonly ExternalSession[];
+  providerConfigs: readonly ProviderConfig[];
+  onboarding?: Onboarding;
+  /** Newest first. */
+  wakeEvents: readonly WakeEvent[];
 }
 
 const DbContext = createContext<Db | null>(null);
@@ -98,7 +105,10 @@ export function DbProvider({ children }: { children: ReactNode }) {
   const [reviews, r14] = useTable(tables.review);
   const [integrations, r15] = useTable(tables.integration);
   const [externalSessions, r16] = useTable(tables.externalSession);
-  const ready = r1 && r2 && r3 && r4 && r5 && r6 && r7 && r8 && r9 && r10 && r11 && r12 && r13 && r14 && r15 && r16;
+  const [providerConfigs, r17] = useTable(tables.providerConfig);
+  const [onboarding, r18] = useTable(tables.onboarding);
+  const [wakeEvents, r19] = useTable(tables.wakeEvent);
+  const ready = r1 && r2 && r3 && r4 && r5 && r6 && r7 && r8 && r9 && r10 && r11 && r12 && r13 && r14 && r15 && r16 && r17 && r18 && r19;
 
   const value = useMemo<Db>(
     () => ({
@@ -122,8 +132,11 @@ export function DbProvider({ children }: { children: ReactNode }) {
         const x = a.updatedAt.microsSinceUnixEpoch, y = b.updatedAt.microsSinceUnixEpoch;
         return x < y ? 1 : x > y ? -1 : 0; // newest first
       }),
+      providerConfigs: [...providerConfigs].sort((a, b) => a.name.localeCompare(b.name)),
+      onboarding: onboarding.find(o => o.id === 0) ?? onboarding[0],
+      wakeEvents: [...wakeEvents].sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)),
     }),
-    [ready, settings, budget, project, employees, providers, chains, spendEvents, runs, tasks, activity, notifications, chat, reports, reviews, integrations, externalSessions]
+    [ready, settings, budget, project, employees, providers, chains, spendEvents, runs, tasks, activity, notifications, chat, reports, reviews, integrations, externalSessions, providerConfigs, onboarding, wakeEvents]
   );
   return <DbContext.Provider value={value}>{children}</DbContext.Provider>;
 }

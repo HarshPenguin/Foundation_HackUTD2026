@@ -989,8 +989,20 @@ export const wakeCrew = spacetimedb.procedure(
     } catch {
       status = 0;
     }
+    // Maritime answers 503 ("could not be woken yet") or 502/504 transiently: retry every 30 s, 4 tries in all.
+    const m = /^\[try (\d)\] /.exec(timer.reason);
+    const attempt = m ? Number(m[1]) : 1;
+    const base = m ? timer.reason.slice(m[0].length) : timer.reason;
+    const retry = (status === 0 || status === 429 || status >= 500) && attempt < 4;
     ctx.withTx(tx => {
       tx.db.wakeEvent.insert({ id: 0n, reason: timer.reason, status, at: tx.timestamp });
+      if (retry) {
+        tx.db.wakeTimer.insert({
+          scheduledId: 0n,
+          scheduledAt: ScheduleAt.time(tx.timestamp.microsSinceUnixEpoch + 30_000_000n),
+          reason: `[try ${attempt + 1}] ${base}`.slice(0, 140),
+        });
+      }
     });
     return {};
   }

@@ -51,7 +51,7 @@ export function useToast() {
 
 type Reducers = DbConnection['reducers'];
 
-function cleanError(e: unknown): string {
+export function cleanError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
   const clean = msg.replace(/^(SenderError|Error):\s*/i, '');
   if (/owner or (worker|admin) only/i.test(clean)) return "Only the owner's browser can do that. In this demo, the first browser to connect is the owner";

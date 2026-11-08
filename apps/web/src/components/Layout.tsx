@@ -16,6 +16,7 @@ import {
   CircleAlert,
 } from 'lucide-react';
 import { useDb } from '@/lib/stdb';
+import { useWakingCrew } from '@/lib/wake';
 import { isSwitchNotice, openNotifications } from '@/lib/domain';
 import { useProviderActions } from '@/lib/providerActions';
 import { ago, tsDate } from '@/lib/format';
@@ -119,6 +120,18 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 function WorkerPill() {
   const db = useDb();
   const online = db.settings?.workerOnline ?? false;
+  const waking = useWakingCrew();
+  if (waking) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
+        title="SpacetimeDB asked Maritime to start your crew's machine"
+      >
+        <span className="size-1.5 animate-pulse rounded-full bg-amber-500" />
+        Waking your crew on Maritime…
+      </span>
+    );
+  }
   return (
     <span
       className={cn(

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { GitPullRequest as Github, Cloud, Database, Boxes, ShieldCheck, RotateCcw, Check, Sparkles } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { GitPullRequest as Github, Cloud, Database, Boxes, ShieldCheck, RotateCcw, Check, Sparkles, Rocket } from 'lucide-react';
 import { useDb } from '@/lib/stdb';
 import { useCall, useToast } from '@/lib/actions';
 import { activeEmployees, ROLE_ORDER } from '@/lib/domain';
-import { CADENCE_LABEL, cadenceLabel, toMicros, whenLabel, tsDate } from '@/lib/format';
+import { CADENCE_LABEL, cadenceLabel, shortDate, toMicros, whenLabel, tsDate } from '@/lib/format';
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, MockTag, NativeSelect, Switch } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -17,6 +17,7 @@ import type { Employee } from '@/module_bindings/types';
 
 const SECTIONS = [
   ['account', 'Account'],
+  ['setup', 'Setup'],
   ['defaults', 'Defaults'],
   ['cadences', 'Cadences'],
   ['calculator', 'Budget calculator'],
@@ -263,6 +264,30 @@ function Integrations() {
   );
 }
 
+function RunOnboarding() {
+  const db = useDb();
+  const ob = db.onboarding;
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
+        <div>
+          <div className="text-sm font-medium text-ink">Run onboarding again</div>
+          <div className="text-xs text-muted">
+            {ob?.completed
+              ? `Set up for ${ob.appName}${ob.completedAt ? ` on ${shortDate(tsDate(ob.completedAt))}` : ''}. Change your app details, AI keys, who does what, budget and schedule.`
+              : 'Tell the crew about your app, connect your AI keys, and pick a budget and schedule.'}
+          </div>
+        </div>
+        <Button variant="outline" asChild>
+          <Link to="/onboarding">
+            <Rocket /> {ob?.completed ? 'Run onboarding again' : 'Set up your crew'}
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ResetDemo() {
   const call = useCall();
   const [open, setOpen] = useState(false);
@@ -344,6 +369,9 @@ export default function SettingsPage() {
         <div className="flex min-w-0 flex-col gap-10">
           <Section id="account" title="Account" badge={<MockTag>Demo sign-in</MockTag>}>
             <Account />
+          </Section>
+          <Section id="setup" title="Setup" description="Your app, AI keys and crew schedule in one guided flow.">
+            <RunOnboarding />
           </Section>
           <Section id="defaults" title="Defaults">
             <Defaults />
