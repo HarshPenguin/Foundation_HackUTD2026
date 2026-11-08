@@ -2,7 +2,7 @@
 AI maintenance team for legacy and vibe-coded software: it understands, repairs, and modernizes
 outdated code on a schedule you set. Also an API credit manager with per-provider thresholds
 ($0 default), switch-or-upgrade, and a weekly spending lock.
-HackUTD 2026 — 8090 + SpacetimeDB tracks. Deadline: submit 10:30 AM 2026-11-08.
+HackUTD 2026 — 8090 + SpacetimeDB tracks. Deadline: final submission 12 PM 2026-11-08.
 Full brief: docs/FOUNDATION_KICKOFF.md
 
 ## Layout

@@ -96,7 +96,7 @@ I built a deliberately legacy **Medicare-style claims app, "MediClaim"** (PHP 5,
   - **Scheduled reducers** run each employee's cadence, the weekly budget reset and the reservation timeouts.
   - A **scheduled procedure makes an outbound HTTP call to wake the crew** on Maritime when work is queued.
   - A **per-identity view** hands API keys only to the worker.
-- **Maritime hosts the crew.** The worker runs in a Maritime agent box (a persistent micro-VM with PHP and git). Maritime machines sleep when idle, so SpacetimeDB wakes the box through Maritime's webhook whenever work is queued.
+- **Maritime hosts the crew.** The worker runs in a Maritime agent box (a persistent micro-VM with PHP and git). Maritime machines sleep when idle, so when work is queued and the crew goes quiet, a SpacetimeDB scheduled procedure calls Maritime's webhook. The crew wakes from its snapshot, reconnects and answers, about 20 seconds from a sleeping start.
 - **The worker** (Node/TypeScript) is a SpacetimeDB client. It claims tasks, calls models through provider adapters (one OpenAI-compatible, one on the Anthropic SDK), and reports every step and token back through reducers. Even when every model call fails, the demo still works, because each employee has an offline playbook.
 - **Frontend:** React, Vite, Tailwind v4, Radix/shadcn-style components, deployed on Vercel.
 - **Claude Code integration:** a small npm package with hooks and an MCP server (official MCP TypeScript SDK) that talks to SpacetimeDB over its HTTP API.

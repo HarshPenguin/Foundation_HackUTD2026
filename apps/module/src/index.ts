@@ -953,7 +953,6 @@ export const reportExternalUsage = spacetimedb.reducer(
 
 const PROVIDER_KINDS = ['maritime', 'openai_compatible', 'anthropic'];
 const WAKE_AFTER_SILENT = 70_000_000n; // the worker heartbeats every 30 s; silent for 70 s means asleep
-const WAKE_DEBOUNCE = 20_000_000n;
 
 function requireOwner(ctx: Ctx) {
   if (!isOwner(ctx) && !isAdmin(ctx)) throw new SenderError('Only the owner can do this. Enter the owner passcode first.');
@@ -962,12 +961,11 @@ function requireOwner(ctx: Ctx) {
 function maybeWakeCrew(ctx: Ctx, reason: string) {
   const w = ctx.db.wakeConfig.id.find(0);
   if (!w || !w.url) return;
-  const n = now(ctx);
+  if ([...ctx.db.wakeTimer.iter()].length > 0) return; // a wake check is already scheduled
+  // Check once the crew would count as silent; the procedure only calls Maritime if work is still waiting.
   const seen = getSettings(ctx).workerLastSeenAt?.microsSinceUnixEpoch ?? 0n;
-  if (n - seen < WAKE_AFTER_SILENT) return; // crew is awake
-  if (w.lastWakeAt && n - w.lastWakeAt.microsSinceUnixEpoch < WAKE_DEBOUNCE) return;
-  ctx.db.wakeConfig.id.update({ ...w, lastWakeAt: ctx.timestamp });
-  ctx.db.wakeTimer.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.time(n), reason: reason.slice(0, 120) });
+  const due = seen + WAKE_AFTER_SILENT > now(ctx) ? seen + WAKE_AFTER_SILENT : now(ctx);
+  ctx.db.wakeTimer.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.time(due), reason: reason.slice(0, 120) });
 }
 
 /** Scheduled procedure: SpacetimeDB itself wakes the crew's Maritime machine over HTTP. */
@@ -976,8 +974,15 @@ export const wakeCrew = spacetimedb.procedure(
   { timer: wakeTimer.rowType },
   t.unit(),
   (ctx, { timer }) => {
-    const cfg = ctx.withTx(tx => tx.db.wakeConfig.id.find(0));
-    if (!cfg || !cfg.url) return {};
+    const check = ctx.withTx(tx => {
+      const cfg = tx.db.wakeConfig.id.find(0);
+      const seen = tx.db.settings.id.find(0)?.workerLastSeenAt?.microsSinceUnixEpoch ?? 0n;
+      const awake = tx.timestamp.microsSinceUnixEpoch - seen < WAKE_AFTER_SILENT - 10_000_000n;
+      const waiting = [...tx.db.task.iter()].some(t => t.status === 'queued' || t.status === 'reserved');
+      return { cfg, awake, waiting };
+    });
+    const cfg = check.cfg;
+    if (!cfg || !cfg.url || check.awake || !check.waiting) return {}; // crew is up, or nothing to do
     let status = 0;
     try {
       const res = ctx.http.fetch(cfg.url, {
