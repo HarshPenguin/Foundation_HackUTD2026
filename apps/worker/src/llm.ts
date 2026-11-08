@@ -26,7 +26,7 @@ export async function think(db: Db, task: Task, employee: Employee, req: Complet
   if (!provider) {
     return { text: canned, live: false, offline: true, providerName: 'none', inputTokens: 0, outputTokens: 0 };
   }
-  const adapter = adapterFor(provider);
+  const adapter = adapterFor(provider, db.providerSetup(provider));
   let text = canned;
   let inputTokens = 0;
   let outputTokens = 0;
@@ -48,13 +48,18 @@ export async function think(db: Db, task: Task, employee: Employee, req: Complet
       inputTokens = pe.usage.inputTokens;
       outputTokens = pe.usage.outputTokens;
     }
-    if (pe.budgetExhausted) {
+    // Real-world stops: out of credits, or the key was rejected. The Purser stops the provider so the
+    // next task switches down the fallback chain (or asks the owner in Manual mode).
+    // Gemini reports a bad key as 400 "Please pass a valid API key".
+    const keyRejected = pe.status === 401 || pe.status === 403 || (pe.status === 400 && /api[ _-]?key/i.test(pe.message));
+    if (pe.budgetExhausted || keyRejected) {
+      const why = pe.budgetExhausted ? 'AI credits used up' : 'API key was rejected';
       try {
-        await db.r.markProviderStopped({ providerId: provider.id, reason: `${provider.name} AI credits used up` });
+        await db.r.markProviderStopped({ providerId: provider.id, reason: `${provider.name} ${why}` });
       } catch (e) {
         console.warn('[llm] markProviderStopped failed:', (e as Error).message);
       }
-      await db.log(task.runId, employee.id, 'budget', `${provider.name} AI credits are used up, so ${employee.displayName} used its offline playbook`);
+      await db.log(task.runId, employee.id, 'budget', `${provider.name}: ${why}. The Purser stopped it, so ${employee.displayName} used its offline playbook and the next task switches models`);
     } else {
       await db.log(task.runId, employee.id, 'info', `${provider.name} was unreachable, so ${employee.displayName} used its offline playbook`);
     }

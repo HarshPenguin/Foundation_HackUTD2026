@@ -295,6 +295,85 @@ export const externalSession = table(
   }
 );
 
+// ---- Real model providers (onboarding). Keyed by provider name so configs survive a demo reset.
+// kind: maritime (Maritime LLM, token injected on Maritime) | openai_compatible (Hugging Face, Gemini,
+// OpenAI, AIsa, any /v1/chat/completions API) | anthropic (Claude via the Anthropic SDK).
+export const providerConfig = table(
+  { name: 'provider_config', public: true },
+  {
+    name: t.string().primaryKey(),
+    kind: t.string(),
+    baseUrl: t.string(),
+    model: t.string(),
+    creditMicros: t.u64(), // the allowance this key gets (becomes the wallet balance)
+    priceInPerMTok: t.u64(),
+    priceOutPerMTok: t.u64(),
+    hasKey: t.bool(),
+    keyLast4: t.string(),
+    updatedAt: t.timestamp(),
+  }
+);
+
+// Private: API keys. Never public; only the registered worker can read them, through worker_secret.
+export const providerSecret = table(
+  { name: 'provider_secret' },
+  {
+    name: t.string().primaryKey(),
+    apiKey: t.string(),
+  }
+);
+
+export const ChainChoice = t.object('ChainChoice', {
+  taskType: t.string(),
+  providerNames: t.array(t.string()),
+});
+
+export const onboarding = table(
+  { name: 'onboarding', public: true },
+  {
+    id: t.u32().primaryKey(),
+    completed: t.bool(),
+    completedAt: t.option(t.timestamp()),
+    appName: t.string(),
+    appDescription: t.string(),
+    stack: t.string(),
+    repoUrl: t.string(),
+    priorities: t.array(t.string()),
+    chains: t.array(ChainChoice),
+  }
+);
+
+// Private: Maritime webhook that wakes the sleeping crew when work is queued.
+export const wakeConfig = table(
+  { name: 'wake_config' },
+  {
+    id: t.u32().primaryKey(),
+    url: t.string(),
+    token: t.string(),
+    lastWakeAt: t.option(t.timestamp()),
+  }
+);
+
+export const wakeTimer = table(
+  { name: 'wake_timer' },
+  {
+    scheduledId: t.u64().primaryKey().autoInc(),
+    scheduledAt: t.scheduleAt(),
+    reason: t.string(),
+  }
+);
+
+// Public log of wake-ups so the UI can show "Waking your crew on Maritime".
+export const wakeEvent = table(
+  { name: 'wake_event', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    reason: t.string(),
+    status: t.u32(), // HTTP status from Maritime, 0 if the call failed
+    at: t.timestamp(),
+  }
+);
+
 const spacetimedb = schema({
   authConfig,
   settings,
@@ -317,5 +396,11 @@ const spacetimedb = schema({
   integrationAuth,
   integration,
   externalSession,
+  providerConfig,
+  providerSecret,
+  onboarding,
+  wakeConfig,
+  wakeTimer,
+  wakeEvent,
 });
 export default spacetimedb;

@@ -49,6 +49,12 @@ export const CadenceTimer = __t.object("CadenceTimer", {
 });
 export type CadenceTimer = __Infer<typeof CadenceTimer>;
 
+export const ChainChoice = __t.object("ChainChoice", {
+  taskType: __t.string(),
+  providerNames: __t.array(__t.string()),
+});
+export type ChainChoice = __Infer<typeof ChainChoice>;
+
 export const ChatMessage = __t.object("ChatMessage", {
   id: __t.u64(),
   role: __t.string(),
@@ -131,6 +137,21 @@ export const Notification = __t.object("Notification", {
 });
 export type Notification = __Infer<typeof Notification>;
 
+export const Onboarding = __t.object("Onboarding", {
+  id: __t.u32(),
+  completed: __t.bool(),
+  completedAt: __t.option(__t.timestamp()),
+  appName: __t.string(),
+  appDescription: __t.string(),
+  stack: __t.string(),
+  repoUrl: __t.string(),
+  priorities: __t.array(__t.string()),
+  get chains() {
+    return __t.array(ChainChoice);
+  },
+});
+export type Onboarding = __Infer<typeof Onboarding>;
+
 export const Project = __t.object("Project", {
   id: __t.u64(),
   name: __t.string(),
@@ -157,6 +178,26 @@ export const Provider = __t.object("Provider", {
   lastUsedAt: __t.option(__t.timestamp()),
 });
 export type Provider = __Infer<typeof Provider>;
+
+export const ProviderConfig = __t.object("ProviderConfig", {
+  name: __t.string(),
+  kind: __t.string(),
+  baseUrl: __t.string(),
+  model: __t.string(),
+  creditMicros: __t.u64(),
+  priceInPerMTok: __t.u64(),
+  priceOutPerMTok: __t.u64(),
+  hasKey: __t.bool(),
+  keyLast4: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type ProviderConfig = __Infer<typeof ProviderConfig>;
+
+export const ProviderSecret = __t.object("ProviderSecret", {
+  name: __t.string(),
+  apiKey: __t.string(),
+});
+export type ProviderSecret = __Infer<typeof ProviderSecret>;
 
 export const Report = __t.object("Report", {
   id: __t.u64(),
@@ -249,9 +290,41 @@ export const Task = __t.object("Task", {
 });
 export type Task = __Infer<typeof Task>;
 
+export const WakeConfig = __t.object("WakeConfig", {
+  id: __t.u32(),
+  url: __t.string(),
+  token: __t.string(),
+  lastWakeAt: __t.option(__t.timestamp()),
+});
+export type WakeConfig = __Infer<typeof WakeConfig>;
+
+export const WakeEvent = __t.object("WakeEvent", {
+  id: __t.u64(),
+  reason: __t.string(),
+  status: __t.u32(),
+  at: __t.timestamp(),
+});
+export type WakeEvent = __Infer<typeof WakeEvent>;
+
+export const WakeTimer = __t.object("WakeTimer", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  reason: __t.string(),
+});
+export type WakeTimer = __Infer<typeof WakeTimer>;
+
 export const WeekRolloverTimer = __t.object("WeekRolloverTimer", {
   scheduledId: __t.u64(),
   scheduledAt: __t.scheduleAt(),
 });
 export type WeekRolloverTimer = __Infer<typeof WeekRolloverTimer>;
+
+export const WorkerSecret = __t.object("WorkerSecret", {});
+export type WorkerSecret = __Infer<typeof WorkerSecret>;
+
+export const WorkerSecretRow = __t.object("WorkerSecretRow", {
+  name: __t.string(),
+  apiKey: __t.string(),
+});
+export type WorkerSecretRow = __Infer<typeof WorkerSecretRow>;
 

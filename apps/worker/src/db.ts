@@ -1,6 +1,6 @@
 // Read helpers over the subscribed client cache, plus thin wrappers for worker reducers.
 import type { Conn } from './stdb';
-import type { Employee, Provider, Run, Task } from './module_bindings/types';
+import type { Employee, Provider, ProviderConfig, Run, Task } from './module_bindings/types';
 import type { ActivityKind } from '@foundation/shared';
 
 export const TERMINAL = new Set(['done', 'rejected', 'failed']);
@@ -52,6 +52,15 @@ export class Db {
   }
   providers(): Provider[] {
     return [...this.conn.db.provider.iter()].sort((a, b) => (a.id < b.id ? -1 : 1));
+  }
+  /** Saved config + API key for a real provider (key comes from the worker-only view). */
+  providerSetup(p: Provider): { config?: ProviderConfig; apiKey?: string } {
+    const config = this.conn.db.providerConfig.name.find(p.name) ?? undefined;
+    const secret = [...this.conn.db.workerSecret.iter()].find(s => s.name === p.name);
+    return { config, apiKey: secret?.apiKey };
+  }
+  onboarding() {
+    return this.conn.db.onboarding.id.find(0) ?? undefined;
   }
   budget() {
     return this.conn.db.budget.id.find(0) ?? undefined;

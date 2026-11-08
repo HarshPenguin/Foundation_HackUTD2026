@@ -1,7 +1,8 @@
 import { t, SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import { ScheduleAt, Timestamp } from 'spacetimedb';
-import spacetimedb, { cadenceTimer, reservationTimer, weekRolloverTimer } from './schema';
+import spacetimedb, { ChainChoice, cadenceTimer, reservationTimer, wakeTimer, weekRolloverTimer } from './schema';
 import { seed, wipe } from './seed';
+import { applyChains, applyProviderConfig, providerByName, reapplyOwnerSetup, SEEDED_PROVIDERS } from './config';
 
 export { default } from './schema';
 
@@ -210,6 +211,7 @@ function createRun(ctx: Ctx, trigger: string, firstEmployeeId: bigint, title: st
 }
 
 function insertTask(ctx: Ctx, runId: bigint, employeeId: bigint, taskType: string, title: string, input: string) {
+  maybeWakeCrew(ctx, title);
   return ctx.db.task.insert({
     id: 0n,
     runId,
@@ -351,6 +353,7 @@ export const resetDemo = spacetimedb.reducer(ctx => {
   const keepWorker = getSettings(ctx).workerOnline;
   wipe(ctx);
   seed(ctx);
+  reapplyOwnerSetup(ctx);
   const s = getSettings(ctx);
   ctx.db.settings.id.update({ ...s, workerOnline: keepWorker });
   rescheduleAll(ctx);
@@ -945,3 +948,188 @@ export const reportExternalUsage = spacetimedb.reducer(
     }
   }
 );
+
+// ------------------------------------------------------------- real providers + onboarding
+
+const PROVIDER_KINDS = ['maritime', 'openai_compatible', 'anthropic'];
+const WAKE_AFTER_SILENT = 70_000_000n; // the worker heartbeats every 30 s; silent for 70 s means asleep
+const WAKE_DEBOUNCE = 20_000_000n;
+
+function requireOwner(ctx: Ctx) {
+  if (!isOwner(ctx) && !isAdmin(ctx)) throw new SenderError('Only the owner can do this. Enter the owner passcode first.');
+}
+
+function maybeWakeCrew(ctx: Ctx, reason: string) {
+  const w = ctx.db.wakeConfig.id.find(0);
+  if (!w || !w.url) return;
+  const n = now(ctx);
+  const seen = getSettings(ctx).workerLastSeenAt?.microsSinceUnixEpoch ?? 0n;
+  if (n - seen < WAKE_AFTER_SILENT) return; // crew is awake
+  if (w.lastWakeAt && n - w.lastWakeAt.microsSinceUnixEpoch < WAKE_DEBOUNCE) return;
+  ctx.db.wakeConfig.id.update({ ...w, lastWakeAt: ctx.timestamp });
+  ctx.db.wakeTimer.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.time(n), reason: reason.slice(0, 120) });
+}
+
+/** Scheduled procedure: SpacetimeDB itself wakes the crew's Maritime machine over HTTP. */
+export const wakeCrew = spacetimedb.procedure(
+  { onSchedule: wakeTimer },
+  { timer: wakeTimer.rowType },
+  t.unit(),
+  (ctx, { timer }) => {
+    const cfg = ctx.withTx(tx => tx.db.wakeConfig.id.find(0));
+    if (!cfg || !cfg.url) return {};
+    let status = 0;
+    try {
+      const res = ctx.http.fetch(cfg.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Maritime-Webhook-Token': cfg.token },
+        body: JSON.stringify({ message: 'foundation:wake', source: 'foundation', reason: timer.reason }),
+      });
+      status = res.status;
+    } catch {
+      status = 0;
+    }
+    ctx.withTx(tx => {
+      tx.db.wakeEvent.insert({ id: 0n, reason: timer.reason, status, at: tx.timestamp });
+    });
+    return {};
+  }
+);
+
+export const setWakeHook = spacetimedb.reducer({ url: t.string(), token: t.string() }, (ctx, { url, token }) => {
+  if (!isAdmin(ctx)) throw new SenderError('admin only');
+  if (url && !url.startsWith('https://')) throw new SenderError('wake URL must be https');
+  const row = { id: 0, url, token, lastWakeAt: undefined };
+  if (ctx.db.wakeConfig.id.find(0)) ctx.db.wakeConfig.id.update(row);
+  else ctx.db.wakeConfig.insert(row);
+});
+
+/** Owner adds or updates a real model provider. An empty apiKey keeps the saved key. */
+export const configureProvider = spacetimedb.reducer(
+  {
+    name: t.string(),
+    kind: t.string(),
+    baseUrl: t.string(),
+    model: t.string(),
+    apiKey: t.string(),
+    creditMicros: t.u64(),
+    priceInPerMTok: t.u64(),
+    priceOutPerMTok: t.u64(),
+  },
+  (ctx, a) => {
+    requireOwner(ctx);
+    const name = a.name.trim().slice(0, 40);
+    if (!name) throw new SenderError('Name the provider');
+    if (name === 'Claude Code') throw new SenderError('Claude Code is connected from Settings → Integrations');
+    if (!PROVIDER_KINDS.includes(a.kind)) throw new SenderError('Unknown provider kind');
+    const model = a.model.trim().slice(0, 100);
+    if (!model) throw new SenderError('Pick a model');
+    const baseUrl = a.baseUrl.trim();
+    if (a.kind === 'openai_compatible' && !baseUrl.startsWith('https://')) throw new SenderError('Base URL must start with https://');
+    const key = a.apiKey.trim();
+    const prevSecret = ctx.db.providerSecret.name.find(name);
+    if (a.kind !== 'maritime' && !key && !prevSecret) throw new SenderError(`Paste the API key for ${name}`);
+    if (key) {
+      if (key.length > 400) throw new SenderError('That key is too long');
+      if (prevSecret) ctx.db.providerSecret.name.update({ name, apiKey: key });
+      else ctx.db.providerSecret.insert({ name, apiKey: key });
+    }
+    const prev = ctx.db.providerConfig.name.find(name);
+    const row = {
+      name,
+      kind: a.kind,
+      baseUrl,
+      model,
+      creditMicros: a.creditMicros,
+      priceInPerMTok: a.priceInPerMTok,
+      priceOutPerMTok: a.priceOutPerMTok,
+      hasKey: Boolean(key || prevSecret),
+      keyLast4: key ? key.slice(-4) : prev?.keyLast4 ?? '',
+      updatedAt: ctx.timestamp,
+    };
+    if (prev) ctx.db.providerConfig.name.update(row);
+    else ctx.db.providerConfig.insert(row);
+    applyProviderConfig(ctx, name);
+    log(ctx, 0n, activeByRole(ctx, 'purser')?.id ?? 0n, 'budget', `${name} is now a real provider (${model}) with a ${usd(a.creditMicros)} allowance`);
+  }
+);
+
+export const removeProviderKey = spacetimedb.reducer({ name: t.string() }, (ctx, { name }) => {
+  requireOwner(ctx);
+  if (ctx.db.providerSecret.name.find(name)) ctx.db.providerSecret.name.delete(name);
+  if (ctx.db.providerConfig.name.find(name)) ctx.db.providerConfig.name.delete(name);
+  const p = providerByName(ctx, name);
+  if (!p) return;
+  if (SEEDED_PROVIDERS.includes(name)) {
+    // MOCK: back to a simulated wallet. Real: the provider simply has no key.
+    ctx.db.provider.id.update({ ...p, isSimulated: name !== 'Maritime' && name !== 'Claude Code' });
+  } else {
+    for (const c of [...ctx.db.fallbackChain.iter()]) {
+      if (c.providerIds.includes(p.id)) ctx.db.fallbackChain.taskType.update({ ...c, providerIds: c.providerIds.filter(id => id !== p.id) });
+    }
+    ctx.db.provider.id.delete(p.id);
+  }
+  log(ctx, 0n, 0n, 'budget', `Removed the ${name} key`);
+});
+
+export const completeOnboarding = spacetimedb.reducer(
+  {
+    appName: t.string(),
+    appDescription: t.string(),
+    stack: t.string(),
+    repoUrl: t.string(),
+    priorities: t.array(t.string()),
+    mode: t.string(),
+    weeklyBudgetMicros: t.u64(),
+    crewDay: t.u32(),
+    crewHour: t.u32(),
+    timezone: t.string(),
+    utcOffsetMinutes: t.i32(),
+    chains: t.array(ChainChoice),
+    startFirstRun: t.bool(),
+  },
+  (ctx, a) => {
+    requireOwner(ctx);
+    if (a.mode !== 'autonomous' && a.mode !== 'manual') throw new SenderError('mode must be autonomous or manual');
+    if (a.crewDay > 6 || a.crewHour > 23) throw new SenderError('Pick a valid day and hour');
+    const row = {
+      id: 0,
+      completed: true,
+      completedAt: ctx.timestamp,
+      appName: a.appName.trim().slice(0, 60) || 'My app',
+      appDescription: a.appDescription.trim().slice(0, 500),
+      stack: a.stack.trim().slice(0, 300),
+      repoUrl: a.repoUrl.trim().slice(0, 300),
+      priorities: a.priorities.slice(0, 10).map(p => p.slice(0, 60)),
+      chains: a.chains,
+    };
+    if (ctx.db.onboarding.id.find(0)) ctx.db.onboarding.id.update(row);
+    else ctx.db.onboarding.insert(row);
+
+    const proj = [...ctx.db.project.iter()][0];
+    if (proj) ctx.db.project.id.update({ ...proj, name: row.appName, repoPath: row.repoUrl || proj.repoPath, stackSummary: row.stack || proj.stackSummary });
+    ctx.db.settings.id.update({ ...getSettings(ctx), mode: a.mode });
+    if (a.weeklyBudgetMicros > 0n) ctx.db.budget.id.update({ ...getBudget(ctx), limitMicros: a.weeklyBudgetMicros });
+    for (const e of [...ctx.db.employee.iter()]) {
+      if (e.status === 'fired' || e.cadence !== 'weekly') continue;
+      ctx.db.employee.id.update({ ...e, runDay: a.crewDay, runHour: a.crewHour, timezone: a.timezone, utcOffsetMinutes: a.utcOffsetMinutes });
+      rescheduleEmployee(ctx, e.id);
+    }
+    applyChains(ctx, a.chains);
+    const m = activeByRole(ctx, 'manager');
+    log(ctx, 0n, m?.id ?? 0n, 'plan', `Onboarding complete. The crew is set up for ${row.appName}`);
+    if (a.startFirstRun && m && ![...ctx.db.run.iter()].some(r => r.status === 'running' && r.trigger !== 'chat')) {
+      const r = createRun(ctx, 'manual', m.id, `First maintenance run on ${row.appName}`, `Priorities: ${row.priorities.join(', ')}`);
+      log(ctx, r.id, m.id, 'plan', `${m.displayName} started the first run on ${row.appName}`);
+    }
+  }
+);
+
+const WorkerSecretRow = t.object('WorkerSecretRow', { name: t.string(), apiKey: t.string() });
+
+/** Only the registered worker sees API keys; every other caller gets an empty list. */
+export const workerSecret = spacetimedb.view({ name: 'worker_secret', public: true }, t.array(WorkerSecretRow), ctx => {
+  const a = ctx.db.authConfig.id.find(0);
+  if (!a || !a.workerIdentity || !a.workerIdentity.isEqual(ctx.sender)) return [];
+  return [...ctx.db.providerSecret.iter()].map(s => ({ name: s.name, apiKey: s.apiKey }));
+});

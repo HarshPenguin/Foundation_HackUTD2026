@@ -36,21 +36,51 @@ async function ensureRegistered(c: Conn): Promise<boolean> {
   return ok;
 }
 
-async function heartbeat() {
-  if (!conn) return;
+let lastBeatMs = 0;
+let reviving: Promise<void> | undefined;
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`timed out after ${ms} ms`)), ms))]);
+}
+
+async function heartbeat(): Promise<boolean> {
+  if (!conn) return false;
   try {
-    if (!state.registered) {
-      await ensureRegistered(conn);
-      return;
-    }
-    await conn.reducers.workerHeartbeat({});
+    if (!state.registered) return await withTimeout(ensureRegistered(conn), 10_000);
+    await withTimeout(conn.reducers.workerHeartbeat({}), 10_000);
     state.lastHeartbeatAt = new Date().toISOString();
+    lastBeatMs = Date.now();
+    return true;
   } catch (err) {
     const msg = (err as Error).message;
     console.warn('[worker] heartbeat failed:', msg);
     // The database may have been republished or the pairing code re-set: register again.
-    if (/registered worker|not initialized/i.test(msg)) await ensureRegistered(conn);
+    if (/registered worker|not initialized/i.test(msg)) return ensureRegistered(conn).catch(() => false);
+    // A hung call usually means the socket died while the Maritime machine slept: reconnect.
+    if (/timed out/.test(msg)) void revive('heartbeat timed out');
+    return false;
   }
+}
+
+/** After a Maritime sleep/wake the old socket is often dead. Check it, and reconnect if needed. */
+function revive(reason: string): Promise<void> {
+  if (reviving) return reviving;
+  reviving = (async () => {
+    if (Date.now() - lastBeatMs < 20_000) return;
+    console.log(`[worker] waking up (${reason})`);
+    if (await heartbeat()) return;
+    console.log('[worker] socket is stale; reconnecting');
+    try {
+      conn?.disconnect();
+    } catch {
+      /* already closed */
+    }
+    await startSession();
+    await heartbeat();
+  })().finally(() => {
+    reviving = undefined;
+  });
+  return reviving;
 }
 
 // ------------------------------------------------------------------ health + chat endpoint (Maritime contract)
@@ -111,6 +141,11 @@ function startHttp() {
         } catch {
           /* plain text body */
         }
+        if (raw.includes('foundation:wake')) {
+          // SpacetimeDB's wakeCrew procedure called Maritime's webhook because work was queued.
+          void revive('woken by Foundation');
+          return send(res, 200, { response: 'Foundation crew is awake.' });
+        }
         if (!message.trim()) return send(res, 400, { response: 'Send {"message": "..."}' });
         return send(res, 200, { response: await chatViaTranslator(message) });
       }
@@ -140,7 +175,31 @@ async function main() {
     `[worker] starting. stdb=${env.stdbUri}/${env.stdbDb} workspace=${env.workspaceDir} llm=${env.llmBaseUrl} key=${env.llmKey ? 'set' : 'not set'} concurrency=${env.concurrency}`
   );
   startHttp();
+  await startSession();
+  try {
+    await ensureRepo();
+  } catch (err) {
+    console.warn('[worker] could not prepare the MediClaim workspace yet:', (err as Error).message);
+  }
+  setInterval(() => pipeline?.tick(), 1000);
+  setInterval(() => void heartbeat(), 30_000);
+  void heartbeat();
+  console.log('[worker] ready');
 
+  const stop = () => {
+    console.log('[worker] shutting down');
+    try {
+      conn?.disconnect();
+    } finally {
+      process.exit(0);
+    }
+  };
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+}
+
+/** Connects (retrying), subscribes, registers, and wires the pipeline. Safe to call again to reconnect. */
+async function startSession() {
   for (let attempt = 1; ; attempt++) {
     try {
       conn = await connect({
@@ -163,37 +222,18 @@ async function main() {
     }
   }
   state.connected = true;
-  await subscribeAll(conn);
+  const c = conn!;
+  await subscribeAll(c);
   console.log('[worker] subscribed to all tables');
 
-  pipeline = new Pipeline(new Db(conn));
-  await ensureRegistered(conn);
-  try {
-    await ensureRepo();
-  } catch (err) {
-    console.warn('[worker] could not prepare the MediClaim workspace yet:', (err as Error).message);
-  }
-
-  const kick = () => setTimeout(() => pipeline?.tick(), 30);
-  conn.db.task.onInsert(kick);
-  conn.db.task.onUpdate(kick);
-  conn.db.run.onUpdate(kick);
-  setInterval(() => pipeline?.tick(), 1000);
-  setInterval(() => void heartbeat(), 30_000);
-  void heartbeat();
-  pipeline.tick();
-  console.log('[worker] ready');
-
-  const stop = () => {
-    console.log('[worker] shutting down');
-    try {
-      conn?.disconnect();
-    } finally {
-      process.exit(0);
-    }
-  };
-  process.on('SIGINT', stop);
-  process.on('SIGTERM', stop);
+  const p = new Pipeline(new Db(c));
+  pipeline = p;
+  await ensureRegistered(c);
+  const kick = () => setTimeout(() => p.tick(), 30);
+  c.db.task.onInsert(kick);
+  c.db.task.onUpdate(kick);
+  c.db.run.onUpdate(kick);
+  p.tick();
 }
 
 main().catch(err => {

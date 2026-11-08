@@ -11,6 +11,7 @@
     "selftest": "tsx src/scripts/selftest.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@foundation/shared": "workspace:*",
     "dotenv": "^18.0.9",
     "openai": "^7.53.0",

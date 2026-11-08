@@ -95,6 +95,9 @@ export function subscribeAll(conn: Conn): Promise<void> {
     'chat_message',
     'report',
     'review',
+    'provider_config',
+    'onboarding',
+    'worker_secret',
   ];
   return new Promise((resolve, reject) => {
     conn
