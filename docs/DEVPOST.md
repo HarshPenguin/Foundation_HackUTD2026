@@ -1,122 +1,151 @@
-# Devpost Draft — HackUTD 2026 (v2)
+# Devpost submission: HackUTD 2026
 
-> Working name: **Skeleton Crew** (alternatives: *Upkeep*, *Night Shift*, *Legacy Crew*)
-> Tracks: **8090 Solutions — Legacy System Modernization** · **SpacetimeDB**
-> `[EDIT LATER]` = confirm or trim before the final 10:30 AM submission.
+> Tracks: **8090 Solutions (Legacy System Modernization)** and **SpacetimeDB**
+> Final submission: 12 PM, 2026-11-08. `[CHECK]` marks anything to confirm before submitting.
 
 ---
 
 ## Project name
-Skeleton Crew
+Foundation
 
-## Elevator pitch / tagline (≤ 200 chars)
-A full-time AI dev team for people who can't afford one. It maintains your legacy and vibe-coded apps every week, reports back in plain English, and never spends a dollar you didn't approve.
+## Elevator pitch (≤ 200 chars)
+An AI maintenance team for legacy and vibe-coded software. It understands, repairs and modernizes your app on a schedule, and manages every AI key and bill with a $0 hard stop.
 
 ---
 
 ## About the project
-*(Paste everything between the two lines below into Devpost's "About the project" field. It uses Markdown with LaTeX.)*
+*(Paste everything between the two lines below into Devpost's "About the project" field. It supports Markdown and LaTeX.)*
 
 ---
 
 ## Inspiration
 
-The world runs on old software that nobody fully understands. Medicare alone made **\$28.8 billion in improper payments** last year, through claims systems built on decades-old code. Large organizations pay consultants to keep those systems alive. Small businesses, clinics, nonprofits, and solo founders can't.
+The world runs on old software that nobody fully understands. Medicare alone made **\$28.8 billion in improper payments** last year, through claims systems built on decades-old code. Large organizations pay consultants to keep systems like that alive. Small businesses, clinics, nonprofits and solo founders can't.
 
-There's a newer version of the same problem. Vibe-coding tools like Base44 and Lovable let anyone ship an app in an afternoon. Then the dependencies age, security holes open up, and the person who "built" it can't read the code. **Every vibe-coded app becomes a legacy app the day it ships.**
+There's a newer version of the same problem. Tools like Base44 and Lovable let anyone ship an app in an afternoon. Then the dependencies age, security holes open up, and the person who "built" it can't read the code. **Every vibe-coded app becomes a legacy app the day it ships.**
 
-While talking with the 8090 team, two more problems came up:
+Talking with the 8090 team raised two more questions:
 
-1. **"Couldn't I just do this with one prompt in Claude Code?"** You can fix a bug with one prompt. You can't get *ongoing ownership* from one prompt: a team that remembers last week, runs on a schedule, reviews its own work, and answers to you.
-2. **AI and cloud bills are a minefield.** Non-technical builders juggle API keys for Claude, Gemini, OpenAI, and AWS, each with its own limits and dashboards. They usually find out a key ran dry, or a bill exploded, *after* it happened.
+1. **"Couldn't I just do this with one prompt in Claude Code?"** One prompt can fix one bug. It can't give you *ongoing ownership*: a team that remembers last week, runs on a schedule, reviews its own work and answers to you. And if you already use Claude Code, Foundation should work *with* it, not compete with it.
+2. **AI bills are a minefield.** Non-technical builders juggle keys for Claude, Gemini, OpenAI and more, each with its own limits and dashboards. They usually find out a key ran dry, or a bill exploded, after it happened.
 
-So I built a tool that handles both: a persistent AI dev team for **post-production**, with a finance department that won't let it overspend.
+So I built a persistent AI dev team for **post-production**, with a finance department that won't let it overspend.
 
 ## What it does
 
-Skeleton Crew gives a non-technical owner a **virtual dev team** for an existing or legacy app. Each AI agent is presented as an **employee**:
+Foundation gives a non-technical owner a **virtual dev team** for an existing or legacy app. Each AI agent is presented as an **employee**:
 
-| Employee | Role |
+| Employee | Job |
 |---|---|
-| **Translator** | The only employee you talk to. Turns plain English into instructions for the Manager and turns technical answers back into plain English. Can't be fired. |
-| **Manager** | Plans each work cycle, assigns tasks, and runs **performance reviews**. Can push back on or **replace** underperforming employees. |
-| **Researcher** | Pulls current best practices, deprecations, and security advisories for your stack. |
-| **Developer** | Patches bugs, upgrades dependencies, and refactors legacy code, always on a separate branch. |
-| **Editor** | Reviews and tests the Developer's work and rejects anything that isn't good enough. |
-| **Accountant** | Tracks every API key, credit balance, and cloud budget. Enforces spending limits and switches to backup models. |
-| **Marketer** | Turns what changed this week into a marketing strategy: release notes, announcement copy, and growth ideas. |
-| **Updater** | Sends your **weekly update** and each employee's **performance review**. |
+| **Translator** | The only employee you talk to. Turns plain English into work for the Manager and answers in plain English. Can't be fired. |
+| **Manager** | Plans each cycle, assigns tasks, acts on performance reviews. |
+| **Auditor** | Maps the legacy codebase: how it works in plain English, its stack, risks and dead code. |
+| **Researcher → Updater** | Gathers deprecations and CVEs for your stack; the Updater turns them into update plans. |
+| **Developers** | Patch bugs and upgrade code, always on a separate git branch. |
+| **Tester** | Runs real checks (`php -l` plus behavioral PHP checks) and approves or rejects each change. Developers never approve their own work. |
+| **Purser** | The finance department: deterministic budget rules (enforced in the database) plus spending insights. |
+| **Reviewer** | Writes performance reviews from real metrics and recommends **fire and replace** (same role, fresh context, revised brief). |
+| **Marketer · Communicator** | Turn what shipped into a marketing plan, and send you the weekly update. |
 
-### 1. Weekly upkeep, on your schedule
-Pick when your crew works (e.g. **every Wednesday at 12 PM**), or let the Manager decide based on your budget. Choose **Autonomous mode** (the crew acts on its own; changes land on a branch, need Editor approval, and are fully logged) or **Manual mode** (the crew proposes and you approve).
+### Five pages
+- **Home:** a ChatGPT-style chat with the Translator, plus at-a-glance cards.
+- **My Finances:** every API wallet, thresholds, the spending lock, drag-to-reorder fallback chains, a budget calculator, insights, and Claude Code spending.
+- **My Developers:** Autonomous/Manual mode, the org chart, a live panel streaming the crew's work, code diffs, and fire and replace.
+- **My Communications:** weekly updates, performance reviews, marketing strategies, audits and research.
+- **Settings:** cadences, budget defaults, integrations, owner passcode.
 
-### 2. Always visible
-- Ask the **Translator** "how's it going?" at any time.
-- Watch the **Live Panel**, which replays the crew's last run step by step, or streams it live while they work.
-- Open the **code changes** directly, if you have developer knowledge.
+### Onboarding: bring any model
+A short onboarding asks about your app (stack, repo, what worries you), which AI providers you have, which model should do which job, and your budget and schedule. The crew's fallback chains are built from your answers. Foundation supports:
+- **Anything OpenAI-compatible:** Maritime, Hugging Face (Llama, DeepSeek, Qwen, gpt-oss…), Gemini, OpenAI, or any custom base URL.
+- **Claude** through Anthropic's official SDK.
 
-### 3. Weekly update, performance reviews, and marketing strategy
-Every cycle ends with a plain-English report, a review card for each employee (what they did, what it cost, and whether the Manager is keeping them), and a short marketing plan based on what shipped.
+Keys go into a **private** SpacetimeDB table. A per-identity **view** returns them only to the registered crew worker, so they never come back to a browser.
 
-### 4. The Accountant: a one-stop API and spend manager
-- **One wallet for every key.** Claude, Gemini, OpenAI, NVIDIA, AWS, and more, each with remaining credits and uses left.
-- **Per-task model choices.** E.g. "use Gemini for research, Claude for code."
-- **Hard stop at \$0, on by default.** No task starts if it would push any provider below its limit. You can raise the threshold, or turn the stop off on purpose.
-- **Fallback chains.** When a provider hits its threshold, the Accountant either switches to the next model in your chosen order (Autonomous) or asks you to switch, pick a different tool, or upgrade (Manual).
-- **API needs analysis.** Recommends which APIs and plans you actually need based on how your crew really works, and flags keys you're paying for but not using.
+### The Purser: a $0 hard stop, enforced in the database
+Before every task the worker asks the database to reserve the **worst case** cost:
 
-Before each task the Accountant estimates its cost:
+$$\hat{C}_{\text{task}} = t^{\text{in}} \, p^{\text{in}}_k + t^{\text{out}}_{\max} \, p^{\text{out}}_k$$
 
-$$\hat{C}_{\text{task}} = \sum_{s \in \text{steps}} \left( t^{\text{in}}_s \, p^{\text{in}}_m + t^{\text{out}}_s \, p^{\text{out}}_m \right)$$
+A task may run on provider $k$ only if
 
-where $t$ are estimated tokens and $p_m$ are model $m$'s prices. A task runs on provider $k$ only if
+$$B_k - R_k - \hat{C}_{\text{task}} \ge \tau_k \quad \text{and} \quad S + R + \hat{C}_{\text{task}} \le L \;\;(\text{while spending is locked})$$
 
-$$B_k - \hat{C}_{\text{task}} \ge \tau_k$$
+where $B_k$ is the provider's balance, $R_k$ what's already reserved on it, $\tau_k$ your threshold (default $\tau_k = 0$), and $S$, $R$, $L$ the week's spent, reserved and limit. Afterwards only the actual cost is charged and the rest is released. A stuck reservation is released after 10 minutes.
 
-where $B_k$ is the remaining balance and $\tau_k$ is your threshold (default $\tau_k = 0$). Otherwise it moves to the next provider in your fallback order $k_1 \rightarrow k_2 \rightarrow \dots$, or stops and asks you.
+If a provider fails the check, **or fails for real** (Maritime returns "out of AI credits", or an API key is rejected), the Purser stops it:
+- **Autonomous mode:** the crew switches to the next model in your fallback chain.
+- **Manual mode:** you get a **Switch or upgrade** prompt.
+
+If nothing passes, autonomous work pauses for the week instead of spending more. Unlocking needs you to type `UNLOCK`.
+
+### Works with Claude Code
+If you already use Claude Code, keep it. Foundation's Claude Code integration adds:
+- **Spend tracking:** a `Stop` hook reports each session's tokens. Foundation prices them at current Claude list prices (including cache reads and writes) and charges your weekly budget. Reports are cumulative, so nothing is double-charged.
+- **The same $0 hard stop:** a `UserPromptSubmit` hook asks a SpacetimeDB reducer before every prompt. When the budget says stop, Claude Code blocks the prompt and says why.
+- **An MCP server** so Claude Code can work with the crew: `foundation_status`, `foundation_app_audit`, `foundation_recent_changes`, `foundation_ask_translator`, `foundation_request_work`.
 
 ### Demo
-I built a deliberately legacy **Medicare-style claims-intake app** (PHP 5, jQuery 1.x, SQL embedded in page code). It has an SQL injection hole, a claim-amount **rounding bug** (the small kind of error that adds up to improper payments), outdated dependencies, and no tests. Then I let the crew work on it, and drained one API key mid-run to show the Accountant switching to a backup model.
-
-The platform also shows the full journey from **build → ship → maintain**: a Base44-style vibe-coding chat, an agent-optimization workflow, and planned **Base44 and Claude Code integrations**. Those parts already exist in other products and appear here as prototypes. The new part is the post-production crew and its Accountant. `[EDIT LATER: list exactly what is real vs. prototype]`
+I built a deliberately legacy **Medicare-style claims app, "MediClaim"** (PHP 5, jQuery 1.4, SQL inside page code). It has an SQL injection hole, a claim-total **rounding bug** (the small kind of error that adds up to improper payments), a hardcoded database password, outdated jQuery, dead code and no tests. The crew audits it, patches it on real git branches, tests the patches with real PHP checks, and reports back. Mid-run, a provider runs dry and the Purser switches models live on screen.
 
 ## How I built it
 
-- **SpacetimeDB is the crew's office.** Employees, tasks, activity logs, reports, reviews, API wallets, budgets, and fallback chains are all SpacetimeDB tables. The React dashboard subscribes to them, so the **Live Panel and spend meters update in real time** with no polling or extra websocket server. Spending limits are enforced **inside reducers**, so no client or agent can get around the hard stop. SpacetimeDB's built-in timed jobs run the weekly schedule.
-- **An agent worker** (Node/TypeScript) connects to SpacetimeDB as a client. It claims tasks, runs each employee as an LLM agent with role-specific instructions, and reports every step and every token back through reducers.
-- **Maritime** hosts the worker on a persistent machine, so the crew keeps working while your laptop is closed. `[EDIT LATER: confirm]`
-- **Frontend:** React, Vite, Tailwind, shadcn/ui. Lovable for early UI prototypes.
-- **Developed with Claude Code** using parallel agent sessions. I'm a solo first-year CS student, so I ran my own small crew to build this one.
+- **SpacetimeDB is the crew's office and its rulebook.**
+  - 27 tables (employees, tasks, runs, activity, wallets, budgets, fallback chains, reviews, reports, integrations, onboarding, schedules).
+  - The React dashboard subscribes to them, so the live panel and spend meters update in real time with no polling and no API server.
+  - Every budget, threshold, lock and switch rule runs **inside reducers**, so no client, agent or Claude Code session can get around them.
+  - **Scheduled reducers** run each employee's cadence, the weekly budget reset and the reservation timeouts.
+  - A **scheduled procedure makes an outbound HTTP call to wake the crew** on Maritime when work is queued.
+  - A **per-identity view** hands API keys only to the worker.
+- **Maritime hosts the crew.** The worker runs in a Maritime agent box (a persistent micro-VM with PHP and git). Maritime machines sleep when idle, so SpacetimeDB wakes the box through Maritime's webhook whenever work is queued.
+- **The worker** (Node/TypeScript) is a SpacetimeDB client. It claims tasks, calls models through provider adapters (one OpenAI-compatible, one on the Anthropic SDK), and reports every step and token back through reducers. Even when every model call fails, the demo still works, because each employee has an offline playbook.
+- **Frontend:** React, Vite, Tailwind v4, Radix/shadcn-style components, deployed on Vercel.
+- **Claude Code integration:** a small npm package with hooks and an MCP server (official MCP TypeScript SDK) that talks to SpacetimeDB over its HTTP API.
+- **Built with Claude Code.** I'm a solo first-year CS student, so I ran my own small crew: parallel Claude Code subagents for the module, the UI and the worker.
 
-## Challenges I faced
+## Challenges I ran into
 
-- **Autonomy without chaos.** Letting agents act on their own means guardrails have to be part of the design: branches only, mandatory review, a full activity log, and a spending limit no agent can override.
-- **Thinking in SpacetimeDB.** Logic runs inside the database as reducers instead of behind a REST API. Once that clicked, it was the perfect place to enforce budgets.
-- **Estimating cost before spending it.** Token estimates are fuzzy, so the hard stop leaves a safety margin and the Accountant updates its estimates as real usage comes in.
-- **Making AI management mean something.** A performance review only matters if it's based on real signals: rejected patches, failed checks, and dollars spent per useful change.
-- `[EDIT LATER: add real challenges from the night]`
+- **Autonomy without chaos.** Letting agents act alone meant designing the guardrails first: branches only, a separate Tester, a full activity log, and a spending limit no agent can override.
+- **Thinking in SpacetimeDB.** Logic runs inside the database instead of behind a REST API. Once that clicked, it was the right place for every money rule, and even for waking the crew.
+- **Reserving before spending.** Token counts aren't known in advance, so I reserve the worst case, charge the actual cost, and release the rest, with a timeout for crashed workers.
+- **Hosting agents that sleep.** Maritime machines sleep when idle, so a long-lived worker kept losing its connection. The fix was making the database wake the crew and having the worker detect a stale socket and reconnect.
+- **Keeping keys out of browsers** while still letting the worker use them: a private table plus an identity-checked view.
+
+## Accomplishments I'm proud of
+
+- Real switching on **real** failures: when Maritime said "out of AI credits" and when fake keys were rejected by Hugging Face, Gemini and Claude, the Purser stopped each provider and the crew moved down the chain by itself.
+- The $0 hard stop extends to **Claude Code**: an over-budget prompt is blocked before it reaches the model.
+- The whole stack is live: Vercel, Maincloud and Maritime.
 
 ## What I learned
 
-- The hard part of agentic maintenance is **trust**, not code generation: visibility, review, a clear chain of responsibility, and cost control.
+- The hard part of agentic maintenance is **trust**, not code generation: visibility, review, a clear chain of responsibility and cost control.
 - Real-time databases are a natural fit for showing what multi-agent systems are doing.
-- How fast "small" API costs add up across providers, and why non-technical builders need a hard stop.
-- `[EDIT LATER]`
+- How fast "small" AI costs add up across providers, and why non-technical builders need a hard stop.
 
 ## What's next
 
-- Real Base44 and Claude Code integrations (connect an app in one click)
-- Real GitHub pull requests with one-click rollback
-- Direct billing integrations (AWS Budgets, provider usage APIs) instead of tracked estimates
-- Real authentication (Supabase) and encrypted key storage
-- Support for mainframe-era code (COBOL) alongside legacy web stacks
+- Real GitHub pull requests with one-click rollback, instead of branches in the crew's own copy.
+- Reading true balances from provider billing APIs (Anthropic Admin API, AWS Budgets) instead of allowances you set.
+- Real authentication (Supabase) and per-user encryption for stored keys.
+- One-click Base44 and Lovable connections, and COBOL support.
 
 ---
 
+## What's real and what's a prototype
+
+| Real (working end to end) | Prototype (labeled `// MOCK:` in the code) |
+|---|---|
+| SpacetimeDB module: all budget, threshold, lock and switch rules in reducers; schedules; wake procedure; worker-only key view | Wallet balances are **allowances you set**, not read from each provider's billing |
+| Live dashboard (Vercel) on Maincloud subscriptions | Providers without a key run as **simulated** wallets with canned output |
+| Crew worker hosted on Maritime; real git branches and PHP checks on MediClaim | Email: the weekly update is stored and shown in a mock inbox, not sent |
+| Real model adapters: OpenAI-compatible (Maritime, Hugging Face, Gemini, OpenAI, custom) and Claude (Anthropic SDK) | Login is a shared owner passcode (stand-in for Supabase Auth) |
+| Onboarding that configures providers, chains, budget and schedule | GitHub, Base44, AWS Budgets and Supabase "Connect" buttons |
+| Claude Code hooks (spend tracking, hard stop) and MCP server | "Upgrade" adds $20 of mock credit |
+
 ## Built with
-`spacetimedb` · `typescript` · `react` · `vite` · `tailwindcss` · `shadcn-ui` · `node.js` · `claude` · `claude-code` · `maritime` · `github` · `lovable` · `nvidia-brev` · `supabase` `[EDIT LATER: remove anything not actually used]`
+`spacetimedb` · `typescript` · `react` · `vite` · `tailwindcss` · `radix-ui` · `node.js` · `maritime` · `vercel` · `anthropic-sdk` · `claude` · `claude-code` · `model-context-protocol` · `openai-api` · `hugging-face` · `gemini` · `php` · `git`
 
 ## Links
-- GitHub repo: `[EDIT LATER]`
-- Live demo: `[EDIT LATER]`
-- Demo video: `[EDIT LATER]`
+- GitHub: https://github.com/HarshPenguin/Foundation_HackUTD2026
+- Live demo: https://foundation-hackutd.vercel.app (owner passcode for the demo: ask at the table) `[CHECK]`
+- Demo video: `[CHECK: add after recording]`
