@@ -161,12 +161,43 @@ Photon Spectrum ──webhook POST /route/photon──────►  views · 
 11. **Separate demo data from real users.** Production still runs `seed_demo()` content (MediClaim, fake history). Add a real empty state, and keep demo mode behind a toggle.
 
 ### E. Becoming a real product
-12. **Auth and multi-tenancy.** It's one database for one owner today. Add real login (SpacetimeAuth or Supabase), then scope every table by an `ownerId`, or use one database per customer. Replace the shared passcode.
+12. **Auth and multi-tenancy** (see item 18 for Supabase login). It's one database for one owner today. Add real login (SpacetimeAuth or Supabase), then scope every table by an `ownerId`, or use one database per customer. Replace the shared passcode.
 13. **Key storage.** Provider keys, the Photon secret and the phone number sit in private tables in plain text. Encrypt them, or use a secrets vault, and add rotation.
 14. **Repos.** Private repos and real pull requests (GitHub App); one-click rollback; more scanner rules and languages (it's tuned for PHP and JS today).
 15. **Real billing.** Read provider usage and balances (Anthropic Admin API cost report, OpenAI usage, AWS Budgets) instead of allowances. Make "Upgrade" a real checkout link.
 16. **Worker scale.** There's a single registered worker, and a second one steals the slot (the last to register wins). Add worker leases per task, and multiple workers.
 17. **Tests.** No automated suite beyond `pnpm selftest` in the worker. Add reducer tests (budget rules first) and an end-to-end Playwright run of the demo.
+
+### G. Accounts, marketing site, integrations, guided help (added 2026-11-10)
+18. **Supabase login and email verification.**
+    - Sign-up and sign-in with email and password (plus optional Google or GitHub), with **email verification** before first use, and password reset.
+    - Link the Supabase user to the SpacetimeDB identity, e.g. verify the Supabase JWT in a reducer or use SpacetimeDB's OIDC support. Replace the shared owner passcode and `claimOwner`.
+    - This is the first step of item 12 (multiple customers): every table needs an owner/account id, or one database per customer.
+19. **Separate marketing website** (in the style of the Cursor, Codex and Claude Code sites), deployed separately from the app (e.g. `apps/site`):
+    - A plain explanation of what Foundation does (AGE, BREAK, LOSE, SLOP), screenshots or a short video, the integrations, and pricing later.
+    - **Main page buttons:**
+      - **Orange "Try Foundation for Desktop":** detects the visitor's OS and goes to the matching **installer page** (Windows, macOS; Linux optional), with a manual picker for other platforms.
+      - **Grey "Continue to Foundation on web":** goes to the web app. Signed-out visitors without an account land on **account set-up** (item 18), then onboarding.
+20. **Desktop app** (needed by the installer pages). It doesn't exist yet. Likely a Tauri or Electron wrapper around the web app, with signed installers (`.exe`/`.msi` for Windows, `.dmg` for macOS) and auto-update. Possible later benefit: the Claude Code integration and local repos can run on the user's own machine.
+21. **Make every integration real and tested end to end.**
+    - **Claude Code:** built, but never tested in a real Claude Code session.
+    - **GitHub:** "Connect" button is a mock. Should cover private repos, real pull requests, and status checks.
+    - **Base44 and Lovable:** "Connect" button is a mock. Today this works only through their "Export to GitHub".
+    - **AWS Budgets:** "Connect" button is a mock. Should read real spend and limits.
+    - **Supabase:** "Connect" button is a mock. Becomes real with item 18.
+    - **Photon** (item 7) and **email** (item 4) need the same end-to-end check.
+    - Add a status light per integration in Settings, so broken connections are visible.
+22. **Guided help the user can open anytime.** This is separate from the setup wizard. A "Show me around" tour, from a help button on every page, that highlights where everything is and how to use it:
+    - the Chatbot
+    - connecting code
+    - Run now and the live panel
+    - limits and the spending lock
+    - fallback chains
+    - employees and fire and replace
+    - texts and email
+    - integrations
+
+    It should start automatically on a user's first visit, be skippable, and be restartable from Settings.
 
 ### F. Housekeeping
 - Delete the dead Maritime agent `foundation-crew` and, if unused, the staging database `foundation-hackutd-staging`.
